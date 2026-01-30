@@ -1,38 +1,48 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { Skeleton } from "@/components/ui/skeleton";
 
-export function MemberCardSkeleton({ index }: { index: number }) {
+export function MemberCardSkeleton() {
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]"
-        >
-            {/* Index */}
-            <div className="w-6 h-4 rounded bg-white/[0.04] animate-pulse" />
+        <div className="relative w-full overflow-hidden rounded-2xl bg-card border border-white/5 h-[300px]">
+            {/* Banner Skeleton */}
+            <Skeleton className="h-32 w-full rounded-none bg-white/5" />
 
-            {/* Avatar */}
-            <div className="w-10 h-10 rounded-lg bg-white/[0.04] animate-pulse" />
-
-            {/* Info */}
-            <div className="flex-1 space-y-2">
-                <div className="w-32 h-4 rounded bg-white/[0.04] animate-pulse" />
-                <div className="w-20 h-3 rounded bg-white/[0.04] animate-pulse" />
+            {/* Avatar Skeleton */}
+            <div className="absolute left-6 top-24">
+                <Skeleton className="h-20 w-20 rounded-full border-4 border-card bg-white/10" />
             </div>
 
-            {/* Wallet */}
-            <div className="w-24 h-8 rounded-lg bg-white/[0.04] animate-pulse" />
-        </motion.div>
+            {/* Content Area */}
+            <div className="px-6 pt-12">
+                <div className="flex flex-col gap-4">
+                    <div className="space-y-2">
+                        {/* Name */}
+                        <Skeleton className="h-6 w-32 bg-white/10" />
+                        {/* Title */}
+                        <Skeleton className="h-4 w-24 bg-white/5" />
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex gap-2">
+                        <Skeleton className="h-6 w-16 rounded-md bg-white/5" />
+                        <Skeleton className="h-6 w-16 rounded-md bg-white/5" />
+                        <Skeleton className="h-6 w-16 rounded-md bg-white/5" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Bookmark Button Skeleton */}
+            <Skeleton className="absolute right-4 top-4 h-9 w-9 rounded-lg bg-white/10" />
+        </div>
     );
 }
 
 export function DrawerSkeleton() {
     return (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-                <MemberCardSkeleton key={i} index={i} />
+                <MemberCardSkeleton key={i} />
             ))}
         </div>
     );

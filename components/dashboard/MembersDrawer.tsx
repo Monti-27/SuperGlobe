@@ -10,7 +10,10 @@ import {
 import { CountryHeader } from './CountryHeader';
 import { MemberCard } from './MemberCard';
 import { SearchInput } from './SearchInput';
-import { DrawerSkeleton } from './MemberCardSkeleton';
+import { DrawerSkeleton, MemberCardSkeleton } from './MemberCardSkeleton';
+import { FreelancerProfileCard } from '@/components/ui/freelancer-profile-card';
+import { LayoutGroup } from 'framer-motion';
+import { getMemberSkills } from '@/lib/utils';
 import { Bounty } from '@/lib/services/superteam-earn';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +42,9 @@ export function MembersDrawer({ open, onOpenChange, country, mode = 'builders', 
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [total, setTotal] = useState(0);
+
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedId, setExpandedId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Fetch members
@@ -169,31 +174,37 @@ export function MembersDrawer({ open, onOpenChange, country, mode = 'builders', 
                                 {/* Members */}
                                 <AnimatePresence mode="popLayout">
                                     {!loading && (
-                                        <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-[minmax(180px,auto)]">
                                             {filteredMembers.map((member, index) => (
-                                                <MemberCard
+                                                <FreelancerProfileCard
                                                     key={member.id}
-                                                    member={member}
-                                                    index={index}
+                                                    name={member.name}
+                                                    title={getMemberSkills(member.wallet)[0] + " Developer"}
+                                                    avatarSrc={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`}
+                                                    bannerSrc={`https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80&fit=crop&auto=format&ixlib=rb-4.0.3`}
+                                                    rating={5.0}
+                                                    duration="Member"
+                                                    rate="Available"
+                                                    wallet={member.wallet}
+                                                    tools={
+                                                        getMemberSkills(member.wallet).slice(0, 3).map((skill) => (
+                                                            <div key={skill} className="bg-white/10 px-2 py-1 rounded text-[10px] text-white/80">
+                                                                {skill}
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    isExpanded={expandedId === member.id}
+                                                    onClick={() => setExpandedId(expandedId === member.id ? null : member.id)}
+                                                    className="w-full"
                                                 />
                                             ))}
 
                                             {/* Loading More */}
                                             {loadingMore && (
-                                                <motion.div
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    className="flex items-center justify-center py-4"
-                                                >
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <motion.div
-                                                            animate={{ rotate: 360 }}
-                                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                                            className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full"
-                                                        />
-                                                        <span className="text-xs font-data">Loading more...</span>
-                                                    </div>
-                                                </motion.div>
+                                                <>
+                                                    <MemberCardSkeleton />
+                                                    <MemberCardSkeleton />
+                                                </>
                                             )}
 
                                             {/* End of List */}
