@@ -118,8 +118,8 @@ export default function Home() {
         />
 
         {/* Unified Control Bar (Top Center) */}
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4 pointer-events-none flex justify-center">
-          <div className="pointer-events-auto">
+        <div className="fixed top-24 md:top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto w-full flex justify-center">
             <ControlBar
               mode={mode}
               setMode={setMode}
