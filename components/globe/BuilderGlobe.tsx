@@ -343,69 +343,21 @@ export default function BuilderGlobe({
                 arcStroke={0.3}
                 arcAltitudeAutoScale={0.25}
 
-                // Member Points (Hidden in bounty mode)
-                pointsData={visibleMembers}
-                pointLat={(d: object) => (d as Member).lat}
-                pointLng={(d: object) => (d as Member).lng}
-                pointColor={(d: object) => {
-                    const member = d as Member;
-                    if (activeFilter) {
-                        if (matchesFilter(member)) {
-                            // Use skill color if possible, else default match color
-                            // But activeFilter IS the skill name
-                            return TECH_COLORS[activeFilter] || '#FF5733'; // Highlight match
-                        }
-                        return 'rgba(255, 255, 255, 0.1)'; // Dim non-match
-                    }
-                    return '#14F195'; // Default green
-                }}
-                pointAltitude={(d: object) => {
-                    const member = d as Member;
-                    if (activeFilter && matchesFilter(member)) {
-                        return 0.02; // Pop out matches
-                    }
-                    return 0.008;
-                }}
-                pointRadius={(d: object) => {
-                    const member = d as Member;
-                    if (activeFilter) {
-                        return matchesFilter(member) ? 0.15 : 0.05; // Larger matches, tiny non-matches
-                    }
-                    return 0.1;
-                }}
-                pointLabel={(d: object) => {
-                    const member = d as Member;
-                    const skills = getMemberSkills(member.wallet);
-                    const skillTags = skills.slice(0, 3).map(s =>
-                        `<span style="display:inline-block; padding:2px 6px; margin-right:4px; border-radius:4px; background:rgba(255,255,255,0.1); font-size:10px;">${s}</span>`
-                    ).join('');
+                // Rings (Ripple Effect for Activity)
+                ringsData={Object.keys(COUNTRY_COORDS).filter(c => members.some(m => m.country === c)).map(c => ({
+                    lat: COUNTRY_COORDS[c].lat,
+                    lng: COUNTRY_COORDS[c].lng,
+                    maxR: 1.2,
+                    propagationSpeed: 1,
+                    repeatPeriod: 2000
+                }))}
+                ringColor={() => mode === 'bounties' ? '#FFD700' : '#14F195'}
+                ringMaxRadius={1.2}
+                ringPropagationSpeed={1}
+                ringRepeatPeriod={2000}
 
-                    return `
-            <div style="
-              background: rgba(0, 0, 0, 0.9);
-              backdrop-filter: blur(16px);
-              padding: 12px 16px;
-              border-radius: 10px;
-              border: 1px solid rgba(255, 255, 255, 0.1);
-              font-family: inherit;
-              min-width: 180px;
-            ">
-              <div style="color: #ededed; font-weight: 500; font-size: 13px;">${member.name}</div>
-              <div style="color: #888; font-size: 11px; margin-top: 2px;">${member.country}</div>
-              <div style="margin-top: 8px;">${skillTags}</div>
-              <div style="
-                margin-top: 10px;
-                padding: 8px 10px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 6px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-              ">
-                <div style="color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Wallet</div>
-                <div style="color: #14F195; font-size: 12px; font-family: monospace;">${truncateWallet(member.wallet)}</div>
-              </div>
-            </div>
-          `;
-                }}
+                // Points (Removed for cleaner look - replaced by polygon highlights and rings)
+                pointsData={[]}
 
                 // Custom Layer -> Bounty Beams
                 customLayerData={mode === 'bounties' ? bounties : []}
