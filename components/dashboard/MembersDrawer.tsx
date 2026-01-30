@@ -61,11 +61,13 @@ export function MembersDrawer({ open, onOpenChange, country, mode = 'builders', 
                 return;
             }
 
-            const newMembers = append ? [...members, ...data.members] : data.members;
-            setMembers(newMembers);
-            setFilteredMembers(newMembers);
+            setMembers(prev => append ? [...prev, ...data.members] : data.members);
+            // setFilteredMembers is handled by the useEffect on [members] change
+
             setHasMore(data.pagination?.hasMore ?? false);
-            setTotal(data.pagination?.total ?? newMembers.length);
+            if (data.pagination?.total) {
+                setTotal(data.pagination.total);
+            }
             setPage(pageNum);
         } catch (error) {
             console.error('Failed to fetch members:', error);
@@ -73,7 +75,7 @@ export function MembersDrawer({ open, onOpenChange, country, mode = 'builders', 
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [country, members]);
+    }, [country]);
 
     // Reset and fetch when country changes
     useEffect(() => {
