@@ -1,3 +1,5 @@
+import { normalizeCountry } from '@/lib/country-normalization';
+
 // Real Data for Solana Superteam Members
 
 export interface Member {
@@ -30,11 +32,22 @@ export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; displayN
     'Philippines': { lat: 12.8797, lng: 121.7740, displayName: 'Philippines' },
     'Malaysia': { lat: 4.2105, lng: 101.9758, displayName: 'Malaysia' },
     'Balkan': { lat: 42.0000, lng: 21.0000, displayName: 'Balkans' },
+    'Balkans': { lat: 42.0000, lng: 21.0000, displayName: 'Balkans' },
     'Japan': { lat: 36.2048, lng: 138.2529, displayName: 'Japan' },
     'France': { lat: 46.2276, lng: 2.2137, displayName: 'France' },
     'Canada': { lat: 56.1304, lng: -106.3468, displayName: 'Canada' },
     'Singapore': { lat: 1.3521, lng: 103.8198, displayName: 'Singapore' },
     'South Korea': { lat: 35.9078, lng: 127.7669, displayName: 'South Korea' },
+    'Indonesia': { lat: -0.7893, lng: 113.9213, displayName: 'Indonesia' },
+    'Ireland': { lat: 53.1424, lng: -7.6921, displayName: 'Ireland' },
+    'Kazakhstan': { lat: 48.0196, lng: 66.9237, displayName: 'Kazakhstan' },
+    'Kazakstan': { lat: 48.0196, lng: 66.9237, displayName: 'Kazakhstan' },
+    'Netherlands': { lat: 52.1326, lng: 5.2913, displayName: 'Netherlands' },
+    'Poland': { lat: 51.9194, lng: 19.1451, displayName: 'Poland' },
+    'Georgia': { lat: 42.3154, lng: 43.3569, displayName: 'Georgia' },
+    'Spain': { lat: 40.4637, lng: -3.7492, displayName: 'Spain' },
+    'Ukraine': { lat: 48.3794, lng: 31.1656, displayName: 'Ukraine' },
+    'Mexico': { lat: 23.6345, lng: -102.5528, displayName: 'Mexico' },
     'USA': { lat: 37.0902, lng: -95.7129, displayName: 'USA' },
 };
 
@@ -57,6 +70,19 @@ export function parseCSVData(csvText: string): Member[] {
     const lines = csvText.trim().split('\n');
     const members: Member[] = [];
 
+    const offsetForWallet = (wallet: string) => {
+        let hash = 0;
+        for (let i = 0; i < wallet.length; i++) {
+            hash = (hash << 5) - hash + wallet.charCodeAt(i);
+            hash |= 0;
+        }
+
+        const hash2 = (hash * 1103515245 + 12345) | 0;
+        const latOffset = ((Math.abs(hash) % 200) / 100 - 1) * 1.2;
+        const lngOffset = ((Math.abs(hash2) % 200) / 100 - 1) * 1.2;
+        return { latOffset, lngOffset };
+    };
+
     // Skip header row
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -75,12 +101,11 @@ export function parseCSVData(csvText: string): Member[] {
         if (!wallet || wallet === '-' || wallet === 'n/a' || wallet === 'N/A') continue;
         if (!country) continue;
 
-        const coords = COUNTRY_COORDS[country];
+        const normalizedCountry = normalizeCountry(country) || country;
+        const coords = COUNTRY_COORDS[normalizedCountry];
         if (!coords) continue; // Skip unknown countries
 
-        // Add slight randomness to coordinates for visual spread
-        const latOffset = (Math.random() - 0.5) * 2;
-        const lngOffset = (Math.random() - 0.5) * 2;
+        const { latOffset, lngOffset } = offsetForWallet(wallet);
 
         members.push({
             id: `member-${i}`,
@@ -120,6 +145,15 @@ export function getCountryStats(members: Member[]): { country: string; count: nu
         'Canada': '🇨🇦',
         'Singapore': '🇸🇬',
         'South Korea': '🇰🇷',
+        'Indonesia': '🇮🇩',
+        'Ireland': '🇮🇪',
+        'Kazakhstan': '🇰🇿',
+        'Netherlands': '🇳🇱',
+        'Poland': '🇵🇱',
+        'Georgia': '🇬🇪',
+        'Spain': '🇪🇸',
+        'Ukraine': '🇺🇦',
+        'Mexico': '🇲🇽',
         'USA': '🇺🇸',
     };
 
