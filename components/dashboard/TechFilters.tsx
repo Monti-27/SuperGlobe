@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TECH_STACKS, TECH_COLORS } from '@/lib/skills';
+import { TECH_COLORS } from '@/lib/skills';
 
 interface TechFiltersProps {
     activeFilter: string | null;
