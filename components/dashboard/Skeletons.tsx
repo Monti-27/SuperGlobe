@@ -6,17 +6,17 @@ export function SidebarSkeleton() {
     return (
         <div className="glass rounded-xl p-4 w-64">
             {/* Header */}
-            <Skeleton className="h-4 w-24 mb-4 bg-white/[0.06]" />
+            <Skeleton className="mb-4 h-4 w-24" />
 
             {/* Country Items */}
             <div className="space-y-2">
                 {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="flex items-center justify-between p-2 rounded-lg">
                         <div className="flex items-center gap-2">
-                            <Skeleton className="h-5 w-5 rounded bg-white/[0.06]" />
-                            <Skeleton className="h-3 w-16 bg-white/[0.06]" />
+                            <Skeleton className="h-5 w-5 rounded" />
+                            <Skeleton className="h-3 w-16" />
                         </div>
-                        <Skeleton className="h-3 w-8 bg-white/[0.06]" />
+                        <Skeleton className="h-3 w-8" />
                     </div>
                 ))}
             </div>
@@ -30,35 +30,20 @@ export function GlobeLoadingSkeleton() {
             <div className="relative">
                 {/* Globe outline */}
                 <div className="w-64 h-64 rounded-full border border-white/[0.08] relative overflow-hidden">
-                    {/* Scanning line animation */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/10 to-transparent animate-pulse" />
+                    <Skeleton className="absolute inset-0 rounded-full" />
 
-                    {/* Grid lines */}
-                    <div className="absolute inset-0 opacity-20">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="absolute w-full h-px bg-white/20"
-                                style={{ top: `${(i + 1) * 16.66}%` }}
-                            />
-                        ))}
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="absolute h-full w-px bg-white/20"
-                                style={{ left: `${(i + 1) * 16.66}%` }}
-                            />
-                        ))}
+                    <div className="absolute inset-[18%]">
+                        <Skeleton className="h-full w-full rounded-full opacity-70" />
                     </div>
                 </div>
 
                 {/* Loading text */}
                 <div className="text-center mt-6">
-                    <p className="text-sm text-muted-foreground font-data">Initializing Globe</p>
+                    <Skeleton className="mx-auto h-3 w-36" />
                     <div className="flex items-center justify-center gap-1 mt-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-100" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-200" />
+                        <Skeleton className="h-1.5 w-1.5 rounded-full" />
+                        <Skeleton className="h-1.5 w-1.5 rounded-full" />
+                        <Skeleton className="h-1.5 w-1.5 rounded-full" />
                     </div>
                 </div>
             </div>
