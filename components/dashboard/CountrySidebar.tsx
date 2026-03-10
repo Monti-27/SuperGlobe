@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Superteam logo mapping
 const COUNTRY_LOGOS: Record<string, string> = {
@@ -32,6 +33,7 @@ interface CountryStat {
 interface CountrySidebarProps {
     stats: CountryStat[];
     selectedCountry: string | null;
+    focusedCountry?: string | null;
     onCountryClick: (country: string) => void;
     isLoaded: boolean;
 }
@@ -39,21 +41,22 @@ interface CountrySidebarProps {
 export function CountrySidebar({
     stats,
     selectedCountry,
+    focusedCountry,
     onCountryClick,
     isLoaded
 }: CountrySidebarProps) {
     if (!isLoaded) {
         return (
             <div className="glass rounded-xl p-4 w-64">
-                <div className="h-3 w-20 bg-white/[0.04] rounded animate-pulse mb-4" />
+                <Skeleton className="mb-4 h-3 w-20" />
                 <div className="space-y-2">
                     {Array.from({ length: 8 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-3 p-2 rounded-lg">
-                            <div className="w-8 h-8 rounded-lg bg-white/[0.04] animate-pulse" />
+                            <Skeleton className="h-8 w-8 rounded-lg" />
                             <div className="flex-1">
-                                <div className="h-3 w-20 bg-white/[0.04] rounded animate-pulse" />
+                                <Skeleton className="h-3 w-20" />
                             </div>
-                            <div className="h-3 w-8 bg-white/[0.04] rounded animate-pulse" />
+                            <Skeleton className="h-3 w-8" />
                         </div>
                     ))}
                 </div>
@@ -76,6 +79,7 @@ export function CountrySidebar({
                 {stats.slice(0, 10).map((stat, index) => {
                     const logoPath = COUNTRY_LOGOS[stat.country] || '/superteam-logos/SUPERTEAM.jpg';
                     const isSelected = selectedCountry === stat.country;
+                    const isFocused = focusedCountry === stat.country;
 
                     return (
                         <motion.button
@@ -88,15 +92,19 @@ export function CountrySidebar({
                             onClick={() => onCountryClick(stat.country)}
                             className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all text-left group ${isSelected
                                 ? 'bg-primary/15 border border-primary/30'
-                                : 'hover:bg-white/[0.04] border border-transparent'
+                                : isFocused
+                                    ? 'bg-white/[0.05] border border-white/20'
+                                    : 'hover:bg-white/[0.04] border border-transparent'
                                 }`}
                         >
                             {/* Logo */}
                             <div className="relative w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/[0.08] flex-shrink-0">
-                                <img
+                                <Image
                                     src={logoPath}
                                     alt={stat.country}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    sizes="32px"
+                                    className="object-cover"
                                 />
                             </div>
 

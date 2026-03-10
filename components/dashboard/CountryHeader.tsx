@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 // Superteam logo mapping
 const COUNTRY_LOGOS: Record<string, string> = {
@@ -44,12 +45,14 @@ export function CountryHeader({ country, memberCount, isLoading }: CountryHeader
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
-                    className="w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-white/[0.1] shadow-2xl"
+                    className="relative w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-white/[0.1] shadow-2xl"
                 >
-                    <img
+                    <Image
                         src={logoPath}
                         alt={`Superteam ${country}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="56px"
+                        className="object-cover"
                     />
                 </motion.div>
 
@@ -70,7 +73,7 @@ export function CountryHeader({ country, memberCount, isLoading }: CountryHeader
                         className="text-sm text-muted-foreground font-data mt-0.5"
                     >
                         {isLoading ? (
-                            <span className="animate-pulse">Loading...</span>
+                            <span className="skeleton inline-block h-4 w-24 rounded-md align-middle" />
                         ) : (
                             <>
                                 <span className="text-secondary font-medium">{memberCount}</span>
