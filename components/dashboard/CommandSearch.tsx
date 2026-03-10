@@ -21,10 +21,13 @@ interface CommandSearchProps {
 export function CommandSearch({ members, globeRef, onCountrySelect }: CommandSearchProps) {
     const [open, setOpen] = useState(false);
 
-    // Cmd+K shortcut
+    // Cmd+K and "/" shortcut
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
-            if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+            const isCmdK = e.key === 'k' && (e.metaKey || e.ctrlKey);
+            const isSlash = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+
+            if (isCmdK || isSlash) {
                 e.preventDefault();
                 setOpen((open) => !open);
             }
@@ -32,6 +35,12 @@ export function CommandSearch({ members, globeRef, onCountrySelect }: CommandSea
 
         document.addEventListener('keydown', down);
         return () => document.removeEventListener('keydown', down);
+    }, []);
+
+    useEffect(() => {
+        const openSearch = () => setOpen(true);
+        window.addEventListener('open-command-search', openSearch);
+        return () => window.removeEventListener('open-command-search', openSearch);
     }, []);
 
     const handleMemberSelect = useCallback((member: Member) => {
