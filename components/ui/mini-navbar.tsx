@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 
 const AnimatedNavLink = ({ href, children, isActive, onClick }: { href: string; children: React.ReactNode; isActive?: boolean; onClick?: (e: React.MouseEvent) => void }) => {
     const defaultTextColor = isActive ? 'text-white' : 'text-gray-300';
@@ -31,32 +31,11 @@ export interface NavbarProps {
 
 export function Navbar({ activeFilter, onFilterChange }: NavbarProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
-    const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const toggleMenu = () => {
         setIsOpen(!isOpen);
     };
-
-    useEffect(() => {
-        if (shapeTimeoutRef.current) {
-            clearTimeout(shapeTimeoutRef.current);
-        }
-
-        if (isOpen) {
-            setHeaderShapeClass('rounded-xl');
-        } else {
-            shapeTimeoutRef.current = setTimeout(() => {
-                setHeaderShapeClass('rounded-full');
-            }, 300);
-        }
-
-        return () => {
-            if (shapeTimeoutRef.current) {
-                clearTimeout(shapeTimeoutRef.current);
-            }
-        };
-    }, [isOpen]);
+    const headerShapeClass = isOpen ? 'rounded-xl' : 'rounded-full';
 
     const logoElement = (
         <div className="relative w-5 h-5 flex items-center justify-center">
