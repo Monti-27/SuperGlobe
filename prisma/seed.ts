@@ -26,6 +26,16 @@ const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
     'Canada': { lat: 56.1304, lng: -106.3468 },
     'Singapore': { lat: 1.3521, lng: 103.8198 },
     'South Korea': { lat: 35.9078, lng: 127.7669 },
+    'Indonesia': { lat: -0.7893, lng: 113.9213 },
+    'Ireland': { lat: 53.1424, lng: -7.6921 },
+    'Kazakhstan': { lat: 48.0196, lng: 66.9237 },
+    'Kazakstan': { lat: 48.0196, lng: 66.9237 },
+    'Netherlands': { lat: 52.1326, lng: 5.2913 },
+    'Poland': { lat: 51.9194, lng: 19.1451 },
+    'Georgia': { lat: 42.3154, lng: 43.3569 },
+    'Spain': { lat: 40.4637, lng: -3.7492 },
+    'Ukraine': { lat: 48.3794, lng: 31.1656 },
+    'Mexico': { lat: 23.6345, lng: -102.5528 },
 };
 
 async function main() {
@@ -71,7 +81,7 @@ async function main() {
         members.push({
             name,
             wallet,
-            country: country === 'Balkan' ? 'Balkans' : country,
+            country: country === 'Balkan' ? 'Balkans' : country === 'Kazakstan' ? 'Kazakhstan' : country,
             lat: coords.lat + latOffset,
             lng: coords.lng + lngOffset,
         });
@@ -99,7 +109,7 @@ async function main() {
             if (inserted % 100 === 0) {
                 console.log(`✅ Inserted ${inserted} members...`);
             }
-        } catch (e) {
+        } catch {
             // Skip errors (duplicates, etc)
         }
     }
