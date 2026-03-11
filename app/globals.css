@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300..700&display=swap');
 @import "tw-animate-css";
 @import "tailwindcss";
+@plugin "daisyui";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,44 +12,45 @@
   --font-serif: 'Instrument Serif', serif;
   --font-space: 'Space Grotesk', sans-serif;
 
-  /* Solana Brand Colors */
-  --solana-purple: #9945FF;
-  --solana-green: #14F195;
+  /* Brand Palette — warm neutral + amber */
+  --accent-amber: #E2A336;
+  --accent-cream: #F0E6D3;
+  --accent-warm: #C4956A;
 
-  /* Dark Theme (Default) */
-  --background: #000000;
-  --foreground: #ededed;
+  /* Dark Theme */
+  --background: #09090B;
+  --foreground: #E4E4E7;
 
-  --card: #0a0a0a;
-  --card-foreground: #ededed;
+  --card: #0C0C0F;
+  --card-foreground: #E4E4E7;
 
-  --popover: #0a0a0a;
-  --popover-foreground: #ededed;
+  --popover: #0C0C0F;
+  --popover-foreground: #E4E4E7;
 
-  --primary: #9945FF;
-  --primary-foreground: #ffffff;
+  --primary: #E2A336;
+  --primary-foreground: #09090B;
 
-  --secondary: #14F195;
-  --secondary-foreground: #000000;
+  --secondary: #C4956A;
+  --secondary-foreground: #09090B;
 
-  --muted: #1a1a1a;
-  --muted-foreground: #888888;
+  --muted: #18181B;
+  --muted-foreground: #71717A;
 
-  --accent: #1a1a1a;
-  --accent-foreground: #ededed;
+  --accent: #18181B;
+  --accent-foreground: #E4E4E7;
 
-  --destructive: #ff4444;
+  --destructive: #EF4444;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #9945FF;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #E2A336;
 
   /* Glass & Surface */
-  --surface: #121212;
-  --surface-glass: rgba(10, 10, 10, 0.8);
+  --surface: #111113;
+  --surface-glass: rgba(12, 12, 15, 0.82);
 
   /* Gradient */
-  --gradient-primary: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+  --gradient-primary: linear-gradient(135deg, #E2A336 0%, #F0E6D3 100%);
 }
 
 @theme inline {
@@ -82,7 +84,7 @@
 
 /* Base Styles */
 body {
-  background: radial-gradient(ellipse at center, #0d0515 0%, #000000 70%);
+  background: #09090B;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
@@ -90,20 +92,20 @@ body {
 
 /* Glassmorphism */
 .glass {
-  background: rgba(10, 10, 10, 0.7);
+  background: rgba(12, 12, 15, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .glass-strong {
-  background: rgba(10, 10, 10, 0.85);
+  background: rgba(12, 12, 15, 0.88);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Text Gradient */
+/* Text Gradient — amber to cream */
 .text-gradient {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -113,11 +115,11 @@ body {
 
 /* Glow Effects */
 .glow-primary {
-  box-shadow: 0 0 30px rgba(153, 69, 255, 0.3);
+  box-shadow: 0 0 30px rgba(226, 163, 54, 0.25);
 }
 
 .glow-secondary {
-  box-shadow: 0 0 30px rgba(20, 241, 149, 0.3);
+  box-shadow: 0 0 30px rgba(196, 149, 106, 0.25);
 }
 
 /* Data Terminal Styling */
@@ -133,16 +135,13 @@ body {
 
 /* Pulse Animation for Live Indicator */
 @keyframes pulse-glow {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 8px var(--solana-green);
+    box-shadow: 0 0 8px rgba(226, 163, 54, 0.6);
   }
-
   50% {
     opacity: 0.5;
-    box-shadow: 0 0 4px var(--solana-green);
+    box-shadow: 0 0 4px rgba(226, 163, 54, 0.3);
   }
 }
 
@@ -150,27 +149,43 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Shimmer Animation — used by TextShine, BadgeShine */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Marquee Animation — used by EcosystemStrip */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Vertical scroll animation — used by LiveOpportunitiesCard */
+@keyframes scroll-y {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(-50% - 0.375rem)); }
+}
+
+.animate-scroll-y {
+  animation: scroll-y 35s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-y:hover {
+  animation-play-state: paused;
+}
+
 /* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 4px;
-}
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+/* Smooth scroll for anchor links */
+html { scroll-behavior: smooth; }
 
 /* Base Layer */
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 }
