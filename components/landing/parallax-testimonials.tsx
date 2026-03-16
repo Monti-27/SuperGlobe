@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, MotionValue, useScroll, useTransform } from 'framer-motion';
-import Lenis from 'lenis';
+import { motion, MotionValue, useScroll, useSpring, useTransform } from 'framer-motion';
 import TweetCard from '@/components/kokonutui/tweet-card';
 import { FadeIn } from './fade-in';
 
@@ -256,16 +255,14 @@ const COL_4 = [TESTIMONIALS[3], TESTIMONIALS[7], TESTIMONIALS[11]];
 function TweetColumn({
   tweets,
   y,
-  topOffset,
 }: {
   tweets: TweetEntry[];
   y: MotionValue<number>;
-  topOffset: string;
 }) {
   return (
     <motion.div
-      className="relative flex w-1/4 min-w-[280px] flex-col gap-4"
-      style={{ y, top: topOffset }}
+      className="relative flex w-1/4 min-w-[280px] flex-col gap-4 will-change-transform [contain:layout_paint_style]"
+      style={{ y }}
     >
       {tweets.map((tweet, i) => (
         <TweetCard
@@ -291,41 +288,37 @@ function TweetColumn({
  */
 export function ParallaxTestimonials() {
   const gallery = useRef<HTMLDivElement>(null);
-  const [dimension, setDimension] = useState({ width: 0, height: 0 });
+  const [height, setHeight] = useState(900);
 
   const { scrollYProgress } = useScroll({
     target: gallery,
     offset: ['start end', 'end start'],
   });
 
-  const { height } = dimension;
+  // Keep travel distances bounded to avoid huge transform jumps on large screens.
+  const travel = Math.min(Math.max(height * 0.9, 520), 980);
 
-  // Each column moves at a different speed for the parallax depth effect
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, height * 1.8]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * 2.6]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.2]);
-  const y4 = useTransform(scrollYProgress, [0, 1], [0, height * 2.2]);
+  const y1Raw = useTransform(scrollYProgress, [0, 1], [-220, travel * 0.66]);
+  const y2Raw = useTransform(scrollYProgress, [0, 1], [-340, travel]);
+  const y3Raw = useTransform(scrollYProgress, [0, 1], [-160, travel * 0.48]);
+  const y4Raw = useTransform(scrollYProgress, [0, 1], [-280, travel * 0.84]);
+
+  // Add light spring smoothing to reduce perceived stutter from uneven scroll deltas.
+  const y1 = useSpring(y1Raw, { stiffness: 85, damping: 24, mass: 0.3 });
+  const y2 = useSpring(y2Raw, { stiffness: 85, damping: 24, mass: 0.3 });
+  const y3 = useSpring(y3Raw, { stiffness: 85, damping: 24, mass: 0.3 });
+  const y4 = useSpring(y4Raw, { stiffness: 85, damping: 24, mass: 0.3 });
 
   useEffect(() => {
-    const lenis = new Lenis();
-
-    const raf = (time: number) => {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    };
-
     const resize = () => {
-      setDimension({ width: window.innerWidth, height: window.innerHeight });
+      setHeight(window.innerHeight);
     };
 
-    window.addEventListener('resize', resize);
-    const frameId = requestAnimationFrame(raf);
     resize();
+    window.addEventListener('resize', resize, { passive: true });
 
     return () => {
       window.removeEventListener('resize', resize);
-      cancelAnimationFrame(frameId);
-      lenis.destroy();
     };
   }, []);
 
@@ -348,17 +341,17 @@ export function ParallaxTestimonials() {
       {/* Parallax gallery */}
       <div
         ref={gallery}
-        className="relative box-border flex h-[160vh] gap-4 overflow-hidden px-4 md:px-6"
+        className="relative box-border flex h-[145vh] gap-4 overflow-hidden px-4 md:px-6"
       >
         {/* Fade edges — top and bottom */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-[#09090B] to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-[#09090B] to-transparent" />
 
         {/* 4 columns at different speeds & vertical offsets */}
-        <TweetColumn tweets={COL_1} y={y1} topOffset="-35%" />
-        <TweetColumn tweets={COL_2} y={y2} topOffset="-55%" />
-        <TweetColumn tweets={COL_3} y={y3} topOffset="-25%" />
-        <TweetColumn tweets={COL_4} y={y4} topOffset="-45%" />
+        <TweetColumn tweets={COL_1} y={y1} />
+        <TweetColumn tweets={COL_2} y={y2} />
+        <TweetColumn tweets={COL_3} y={y3} />
+        <TweetColumn tweets={COL_4} y={y4} />
       </div>
     </section>
   );
