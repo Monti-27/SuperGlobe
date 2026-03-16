@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Solana Superteam Builders",
+  title: "Superteam Globe",
   description: "Global network of Solana builders visualized on an interactive 3D globe",
   icons: {
-    icon: "/superteam-logos/SUPERTEAM.jpg",
-    shortcut: "/superteam-logos/SUPERTEAM.jpg",
-    apple: "/superteam-logos/SUPERTEAM.jpg",
+    icon: "/icon.png?v=3",
+    shortcut: "/favicon.ico?v=3",
+    apple: "/apple-icon.png?v=3",
   },
 };
 
