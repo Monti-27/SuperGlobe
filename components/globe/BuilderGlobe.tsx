@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe, { GlobeMethods } from 'react-globe.gl';
-import * as THREE from 'three';
-import { parseCSVData, HUB_ARCS, type Member, COUNTRY_COORDS } from '@/lib/mock-data';
+import { HUB_ARCS, type Member, COUNTRY_COORDS } from '@/lib/mock-data';
 import { getMemberSkills } from '@/lib/utils';
 import { type Opportunity } from '@/lib/services/superteam-earn';
 import { displayCountryName, getGeoCountryName, normalizeCountry } from '@/lib/country-normalization';
@@ -15,6 +14,8 @@ interface GeoFeature {
     NAME?: string;
     ADMIN?: string;
     ISO_A3?: string;
+    __rawCountry?: string | null;
+    __canonicalCountry?: string | null;
     [key: string]: unknown;
   };
   geometry: {
@@ -29,9 +30,9 @@ interface GeoJSON {
 }
 
 interface BuilderGlobeProps {
+  members: Member[];
   onCountryClick?: (countryName: string) => void;
   onCountryHover?: (countryName: string | null) => void;
-  onMembersLoaded?: (members: Member[]) => void;
   onGlobeReady?: () => void;
   selectedCountry?: string | null;
   globeRef?: React.MutableRefObject<GlobeMethods | undefined>;
@@ -43,7 +44,7 @@ interface BuilderGlobeProps {
 interface GlobeRingDatum {
   lat: number;
   lng: number;
-  kind: 'ambient' | 'selected';
+  kind: 'selected';
 }
 
 interface HubArcDatum {
@@ -83,24 +84,63 @@ const COUNTRY_LOGOS: Record<string, string> = {
 
 const DRAG_THRESHOLD_PX = 6;
 const BUILDER_ACCENT = '#6fd8ff';
+const MAX_DEVICE_PIXEL_RATIO = 1.25;
+const EMPTY_MEMBERS: Member[] = [];
+const EMPTY_OPPORTUNITIES: Opportunity[] = [];
 
-export default function BuilderGlobe({
+let cachedCountries: GeoFeature[] | null = null;
+let countriesPromise: Promise<GeoFeature[]> | null = null;
+
+function preprocessCountries(data: GeoJSON): GeoFeature[] {
+  return data.features
+    .map((feature) => {
+      const rawCountry = getGeoCountryName(feature);
+      const canonicalCountry = normalizeCountry(rawCountry);
+
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          __rawCountry: rawCountry,
+          __canonicalCountry: canonicalCountry,
+        },
+      };
+    })
+    .filter((feature) => feature.properties.__canonicalCountry && feature.properties.__canonicalCountry !== 'Antarctica');
+}
+
+function loadCountries(): Promise<GeoFeature[]> {
+  if (cachedCountries) {
+    return Promise.resolve(cachedCountries);
+  }
+
+  if (!countriesPromise) {
+    countriesPromise = fetch('/data/world.geojson')
+      .then((res) => res.json())
+      .then((data: GeoJSON) => {
+        cachedCountries = preprocessCountries(data);
+        return cachedCountries;
+      });
+  }
+
+  return countriesPromise;
+}
+
+function BuilderGlobeComponent({
+  members,
   onCountryClick,
   onCountryHover,
-  onMembersLoaded,
   onGlobeReady,
   selectedCountry,
   globeRef: externalGlobeRef,
   activeFilter,
   mode = 'builders',
-  opportunities = [],
+  opportunities = EMPTY_OPPORTUNITIES,
 }: BuilderGlobeProps) {
   const internalGlobeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeRef = externalGlobeRef || internalGlobeRef;
-  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [countries, setCountries] = useState<GeoFeature[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [hoverCountry, setHoverCountry] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [selectedPulseCountry, setSelectedPulseCountry] = useState<string | null>(null);
@@ -111,7 +151,6 @@ export default function BuilderGlobe({
   const loggedResolutionMisses = useRef(new Set<string>());
   const pulseTimeoutRef = useRef<number | null>(null);
   const lastReportedHoverRef = useRef<string | null>(null);
-  const normalizedCountryCacheRef = useRef(new Map<string, string | null>());
 
   const normalizedSelectedCountry = useMemo(
     () => normalizeCountry(selectedCountry) || null,
@@ -143,70 +182,91 @@ export default function BuilderGlobe({
 
   const resolvePolygonCountry = useCallback((polygon: object | null) => {
     const feature = polygon as GeoFeature | null;
-    const rawCountry = getGeoCountryName(feature);
-    let canonicalCountry: string | null = null;
-
-    if (rawCountry) {
-      if (normalizedCountryCacheRef.current.has(rawCountry)) {
-        canonicalCountry = normalizedCountryCacheRef.current.get(rawCountry) || null;
-      } else {
-        canonicalCountry = normalizeCountry(rawCountry);
-        normalizedCountryCacheRef.current.set(rawCountry, canonicalCountry);
-      }
-    }
 
     return {
-      rawCountry,
-      canonicalCountry,
+      rawCountry: feature?.properties.__rawCountry || null,
+      canonicalCountry: feature?.properties.__canonicalCountry || null,
     };
   }, []);
 
   useEffect(() => {
-    fetch('/data/world.geojson')
-      .then((res) => res.json())
-      .then((data: GeoJSON) => {
-        setCountries(
-          data.features.filter((feature) => {
-            const canonical = normalizeCountry(getGeoCountryName(feature));
-            return canonical !== 'Antarctica';
-          })
-        );
+    let cancelled = false;
+
+    loadCountries()
+      .then((data) => {
+        if (!cancelled) {
+          setCountries(data);
+        }
       })
-      .catch((err) => console.error('Failed to load country polygons:', err));
+      .catch((error) => console.error('Failed to load country polygons:', error));
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    fetch('/members-data/Shareable Wallets (Public Access).csv')
-      .then((res) => res.text())
-      .then((csvText) => {
-        const parsedMembers = parseCSVData(csvText);
-        setMembers(parsedMembers);
-        onMembersLoaded?.(parsedMembers);
-      })
-      .catch((err) => console.error('Failed to load members CSV:', err));
-  }, [onMembersLoaded]);
+    let frame = 0;
+
+    const updateDimensions = () => {
+      frame = 0;
+      const nextWidth = window.innerWidth;
+      const nextHeight = window.innerHeight;
+
+      setDimensions((current) => {
+        if (current.width === nextWidth && current.height === nextHeight) {
+          return current;
+        }
+
+        return { width: nextWidth, height: nextHeight };
+      });
+    };
+
+    const onResize = () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      frame = window.requestAnimationFrame(updateDimensions);
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', onResize, { passive: true });
+
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!globeRef.current) {
+    if (!globeRef.current || countries.length === 0) {
       return;
     }
 
     const controls = globeRef.current.controls();
     if (controls) {
       controls.autoRotate = !normalizedSelectedCountry;
-      controls.autoRotateSpeed = 0.2;
+      controls.autoRotateSpeed = 0.16;
       controls.enableZoom = true;
-      controls.minDistance = 180;
-      controls.maxDistance = 380;
+      controls.minDistance = 185;
+      controls.maxDistance = 360;
       controls.enablePan = false;
       controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.rotateSpeed = 0.7;
-      controls.zoomSpeed = 0.8;
+      controls.dampingFactor = 0.1;
+      controls.rotateSpeed = 0.62;
+      controls.zoomSpeed = 0.75;
     }
 
-    globeRef.current.pointOfView({ lat: 20, lng: 30, altitude: 2.08 }, 800);
-  }, [countries, globeRef, normalizedSelectedCountry]);
+    const renderer = globeRef.current.renderer();
+    if (renderer) {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO));
+    }
+
+    globeRef.current.pointOfView({ lat: 20, lng: 30, altitude: 2.02 }, 0);
+  }, [countries.length, globeRef, normalizedSelectedCountry]);
 
   useEffect(() => {
     if (!normalizedSelectedCountry || !globeRef.current) {
@@ -218,7 +278,7 @@ export default function BuilderGlobe({
       opportunities.find((item) => normalizeCountry(item.country) === normalizedSelectedCountry)?.coordinates;
 
     if (coords) {
-      globeRef.current.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.72 }, 1100);
+      globeRef.current.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.72 }, 900);
     }
   }, [normalizedSelectedCountry, globeRef, opportunities]);
 
@@ -230,16 +290,6 @@ export default function BuilderGlobe({
 
     controls.autoRotate = !hoverCountry && !normalizedSelectedCountry;
   }, [hoverCountry, normalizedSelectedCountry, globeRef]);
-
-  useEffect(() => {
-    const updateDimensions = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
 
   useEffect(() => {
     if (countries.length === 0 || dimensions.width === 0 || dimensions.height === 0) {
@@ -287,6 +337,24 @@ export default function BuilderGlobe({
   }, []);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      if (!globeRef.current) {
+        return;
+      }
+
+      if (document.hidden) {
+        globeRef.current.pauseAnimation();
+        return;
+      }
+
+      globeRef.current.resumeAnimation();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [globeRef]);
+
+  useEffect(() => {
     return () => {
       if (pulseTimeoutRef.current !== null) {
         window.clearTimeout(pulseTimeoutRef.current);
@@ -296,7 +364,7 @@ export default function BuilderGlobe({
 
   const membersInCurrentFilter = useMemo(() => {
     if (mode === 'bounties') {
-      return [];
+      return EMPTY_MEMBERS;
     }
 
     return activeFilter
@@ -347,128 +415,133 @@ export default function BuilderGlobe({
   );
 
   const ringsData = useMemo(() => {
-    const rings: GlobeRingDatum[] = [];
-
-    if (selectedPulseCountry && normalizedSelectedCountry === selectedPulseCountry) {
-      const selectedCoords = COUNTRY_COORDS[selectedPulseCountry];
-      if (selectedCoords) {
-        rings.push({
-          lat: selectedCoords.lat,
-          lng: selectedCoords.lng,
-          kind: 'selected',
-        });
-      }
+    if (!selectedPulseCountry || normalizedSelectedCountry !== selectedPulseCountry) {
+      return [];
     }
 
-    return rings;
+    const selectedCoords = COUNTRY_COORDS[selectedPulseCountry];
+    if (!selectedCoords) {
+      return [];
+    }
+
+    return [
+      {
+        lat: selectedCoords.lat,
+        lng: selectedCoords.lng,
+        kind: 'selected',
+      } satisfies GlobeRingDatum,
+    ];
   }, [normalizedSelectedCountry, selectedPulseCountry]);
 
-  const polygonCapColor = (polygon: object) => {
-    const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
+  const polygonCapColor = useCallback(
+    (polygon: object) => {
+      const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
 
-    if (!rawCountry || !canonicalCountry) {
-      maybeLogResolutionMiss(rawCountry);
+      if (!rawCountry || !canonicalCountry) {
+        maybeLogResolutionMiss(rawCountry);
+      }
+
       return 'rgba(0,0,0,0)';
-    }
+    },
+    [maybeLogResolutionMiss, resolvePolygonCountry]
+  );
 
-    const isSelected = normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry;
-    const isHovered = hoverCountry && canonicalCountry === hoverCountry;
+  const polygonStrokeColor = useCallback(
+    (polygon: object) => {
+      const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
 
-    // Border-only hover/selection UI: never tint polygon fills.
-    if (isSelected || isHovered) {
-      return 'rgba(0,0,0,0)';
-    }
+      if (!rawCountry || !canonicalCountry) {
+        return 'rgba(255,255,255,0.08)';
+      }
 
-    return 'rgba(0,0,0,0)';
-  };
+      const isSelected = normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry;
+      if (isSelected) {
+        return mode === 'bounties' ? 'rgba(255, 215, 0, 0.98)' : 'rgba(255,255,255,0.98)';
+      }
 
-  const polygonStrokeColor = (polygon: object) => {
-    const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
+      if (hoverCountry && canonicalCountry === hoverCountry) {
+        return mode === 'bounties' ? 'rgba(255, 215, 0, 0.7)' : 'rgba(111, 216, 255, 0.78)';
+      }
 
-    if (!rawCountry || !canonicalCountry) {
-      return 'rgba(255,255,255,0.08)';
-    }
+      return isInteractiveCountry(canonicalCountry) ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)';
+    },
+    [hoverCountry, isInteractiveCountry, mode, normalizedSelectedCountry, resolvePolygonCountry]
+  );
 
-    const isSelected = normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry;
-    if (isSelected) {
-      return mode === 'bounties' ? 'rgba(255, 215, 0, 0.98)' : 'rgba(255,255,255,0.98)';
-    }
+  const polygonLabel = useCallback(
+    (polygon: object) => {
+      const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
 
-    if (hoverCountry && canonicalCountry === hoverCountry) {
-      return mode === 'bounties' ? 'rgba(255, 215, 0, 0.62)' : 'rgba(111, 216, 255, 0.72)';
-    }
+      if (!rawCountry || !canonicalCountry || !isInteractiveCountry(canonicalCountry)) {
+        return '';
+      }
 
-    return isInteractiveCountry(canonicalCountry) ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.08)';
-  };
+      if (normalizedSelectedCountry && normalizedSelectedCountry === canonicalCountry) {
+        return '';
+      }
 
-  const polygonLabel = (polygon: object) => {
-    const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
+      const count = getCountryCount(canonicalCountry);
+      const metricLabel =
+        mode === 'bounties'
+          ? `${count.toLocaleString()} open opportunities`
+          : `${count.toLocaleString()} builders`;
 
-    if (!rawCountry || !canonicalCountry || !isInteractiveCountry(canonicalCountry)) {
-      return '';
-    }
+      const logoFile = COUNTRY_LOGOS[canonicalCountry] || 'SUPERTEAM.jpg';
+      const logoPath = `/superteam-logos/${logoFile}`;
+      const accent = mode === 'bounties' ? '#FFD700' : BUILDER_ACCENT;
 
-    if (normalizedSelectedCountry && normalizedSelectedCountry === canonicalCountry) {
-      return '';
-    }
-
-    const count = getCountryCount(canonicalCountry);
-    const metricLabel =
-      mode === 'bounties'
-        ? `${count.toLocaleString()} open opportunities`
-        : `${count.toLocaleString()} builders`;
-
-    const logoFile = COUNTRY_LOGOS[canonicalCountry] || 'SUPERTEAM.jpg';
-    const logoPath = `/superteam-logos/${logoFile}`;
-    const accent = mode === 'bounties' ? '#FFD700' : BUILDER_ACCENT;
-
-    return `
-      <div style="
-        background: rgba(4, 7, 18, 0.96);
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        padding: 12px 14px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 220px;
-        backdrop-filter: blur(8px);
-        box-shadow: 0 16px 42px rgba(0,0,0,0.5);
-      ">
-        <img src="${logoPath}" style="width: 42px; height: 42px; border-radius: 11px; object-fit: cover; border: 1px solid rgba(255,255,255,0.22)" />
-        <div>
-          <div style="color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 0.01em;">${displayCountryName(canonicalCountry)}</div>
-          <div style="color: ${accent}; font-size: 12px; margin-top: 2px; font-family: monospace;">${metricLabel}</div>
+      return `
+        <div style="
+          background: rgba(4, 7, 18, 0.96);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          padding: 12px 14px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 220px;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 16px 42px rgba(0,0,0,0.5);
+        ">
+          <img src="${logoPath}" style="width: 42px; height: 42px; border-radius: 11px; object-fit: cover; border: 1px solid rgba(255,255,255,0.22)" />
+          <div>
+            <div style="color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 0.01em;">${displayCountryName(canonicalCountry)}</div>
+            <div style="color: ${accent}; font-size: 12px; margin-top: 2px; font-family: monospace;">${metricLabel}</div>
+          </div>
         </div>
-      </div>
-    `;
-  };
+      `;
+    },
+    [getCountryCount, isInteractiveCountry, mode, normalizedSelectedCountry, resolvePolygonCountry]
+  );
 
-  const handlePolygonClick = (polygon: object) => {
-    if (isDragging.current) {
-      return;
-    }
+  const handlePolygonClick = useCallback(
+    (polygon: object) => {
+      if (isDragging.current) {
+        return;
+      }
 
-    const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
-    if (!rawCountry || !canonicalCountry) {
-      maybeLogResolutionMiss(rawCountry);
-      return;
-    }
+      const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
+      if (!rawCountry || !canonicalCountry) {
+        maybeLogResolutionMiss(rawCountry);
+        return;
+      }
 
-    if (!isInteractiveCountry(canonicalCountry)) {
-      return;
-    }
+      if (!isInteractiveCountry(canonicalCountry)) {
+        return;
+      }
 
-    setSelectedPulseCountry(canonicalCountry);
-    if (pulseTimeoutRef.current !== null) {
-      window.clearTimeout(pulseTimeoutRef.current);
-    }
-    pulseTimeoutRef.current = window.setTimeout(() => {
-      setSelectedPulseCountry((current) => (current === canonicalCountry ? null : current));
-    }, 1500);
+      setSelectedPulseCountry(canonicalCountry);
+      if (pulseTimeoutRef.current !== null) {
+        window.clearTimeout(pulseTimeoutRef.current);
+      }
+      pulseTimeoutRef.current = window.setTimeout(() => {
+        setSelectedPulseCountry((current) => (current === canonicalCountry ? null : current));
+      }, 1200);
 
-    onCountryClick?.(canonicalCountry);
-  };
+      onCountryClick?.(canonicalCountry);
+    },
+    [isInteractiveCountry, maybeLogResolutionMiss, onCountryClick, resolvePolygonCountry]
+  );
 
   const handlePolygonHover = (polygon: object | null) => {
     const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
@@ -481,6 +554,7 @@ export default function BuilderGlobe({
       canonicalCountry && isInteractiveCountry(canonicalCountry)
         ? canonicalCountry
         : null;
+
     setHoverCountry((prev) => (prev === nextHoverCountry ? prev : nextHoverCountry));
 
     if (lastReportedHoverRef.current !== nextHoverCountry) {
@@ -494,12 +568,28 @@ export default function BuilderGlobe({
     }
   };
 
+  const opportunityMarkers = useMemo(() => {
+    if (mode !== 'bounties') {
+      return EMPTY_OPPORTUNITIES;
+    }
+
+    return opportunities;
+  }, [mode, opportunities]);
+
+  const hubArcs = useMemo(() => {
+    if (mode === 'bounties' || normalizedSelectedCountry) {
+      return [] as HubArcDatum[];
+    }
+
+    return HUB_ARCS as HubArcDatum[];
+  }, [mode, normalizedSelectedCountry]);
+
   if (dimensions.width === 0) {
     return null;
   }
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-0">
+    <div className="absolute inset-0 z-0">
       <Globe
         ref={globeRef}
         width={dimensions.width}
@@ -508,16 +598,14 @@ export default function BuilderGlobe({
         animateIn={false}
         waitForGlobeReady={false}
         rendererConfig={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
-        globeCurvatureResolution={8}
+        globeCurvatureResolution={4}
         enablePointerInteraction={true}
         pointerEventsFilter={(_obj: object, data?: object) => {
           const datum = data as Record<string, unknown> | undefined;
           if (!datum) {
-            // Ignore non-data scene objects (globe sphere, helpers).
             return false;
           }
 
-          // Keep hover/click locked on country polygons; arcs/columns should not steal pointer events.
           if (
             Object.prototype.hasOwnProperty.call(datum, 'startLat') &&
             Object.prototype.hasOwnProperty.call(datum, 'endLat')
@@ -532,34 +620,31 @@ export default function BuilderGlobe({
             return false;
           }
 
-          // Allow pointer events only for GeoJSON country polygon data.
-          const hasGeoShape =
+          return (
             Object.prototype.hasOwnProperty.call(datum, 'geometry') &&
-            Object.prototype.hasOwnProperty.call(datum, 'properties');
-
-          return hasGeoShape;
+            Object.prototype.hasOwnProperty.call(datum, 'properties')
+          );
         }}
         showPointerCursor={(_objType: string, objData: object) => {
           const { canonicalCountry } = resolvePolygonCountry(objData);
           return isInteractiveCountry(canonicalCountry);
         }}
-        lineHoverPrecision={0.12}
+        lineHoverPrecision={0.2}
         backgroundColor="rgba(0,0,0,0)"
         globeImageUrl="/textures/earth-night.jpg"
         atmosphereColor={mode === 'bounties' ? '#ffd27a' : '#6fd8ff'}
-        atmosphereAltitude={0.085}
+        atmosphereAltitude={0.065}
         polygonsData={countries}
-        polygonCapCurvatureResolution={3}
+        polygonCapCurvatureResolution={10}
         polygonsTransitionDuration={0}
         polygonAltitude={(polygon: object) => {
           const { canonicalCountry } = resolvePolygonCountry(polygon);
 
           if (normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry) {
-            return mode === 'bounties' ? 0.006 : 0.0055;
+            return mode === 'bounties' ? 0.0032 : 0.003;
           }
 
-          // Keep a stable altitude to make hit-testing consistent across full country area.
-          return 0.004;
+          return 0.0012;
         }}
         polygonCapColor={polygonCapColor}
         polygonSideColor={() => 'rgba(0,0,0,0)'}
@@ -567,87 +652,49 @@ export default function BuilderGlobe({
         polygonLabel={polygonLabel}
         onPolygonClick={handlePolygonClick}
         onPolygonHover={handlePolygonHover}
-        arcsData={mode === 'bounties' ? [] : (HUB_ARCS as HubArcDatum[])}
-        arcColor={() => ['rgba(124, 58, 237, 0.28)', 'rgba(111, 216, 255, 0.28)']}
+        arcsData={hubArcs}
+        arcColor={() => ['rgba(124, 58, 237, 0.24)', 'rgba(111, 216, 255, 0.24)']}
         arcDashLength={1}
         arcDashGap={0}
         arcDashAnimateTime={0}
         arcsTransitionDuration={0}
-        arcCurveResolution={14}
-        arcAltitudeAutoScale={0.2}
+        arcCurveResolution={8}
+        arcAltitudeAutoScale={0.18}
         ringsData={ringsData}
         ringColor={(ring: object) => {
           const datum = ring as GlobeRingDatum;
-          if (datum.kind === 'selected') {
-            return mode === 'bounties' ? 'rgba(255, 215, 0, 0.95)' : 'rgba(111, 216, 255, 0.9)';
+          return datum.kind === 'selected'
+            ? mode === 'bounties'
+              ? 'rgba(255, 215, 0, 0.95)'
+              : 'rgba(111, 216, 255, 0.9)'
+            : 'rgba(111, 216, 255, 0.32)';
+        }}
+        ringMaxRadius={() => 1.15}
+        ringPropagationSpeed={() => 1.35}
+        ringRepeatPeriod={() => 760}
+        ringResolution={12}
+        pointsData={opportunityMarkers}
+        pointLat={(point) => (point as Opportunity).coordinates.lat}
+        pointLng={(point) => (point as Opportunity).coordinates.lng}
+        pointAltitude={(point) => Math.max(0.02, Math.min((point as Opportunity).rewardAmount / 55000, 0.15))}
+        pointRadius={0.24}
+        pointColor={(point) => {
+          const opportunity = point as Opportunity;
+
+          if (opportunity.urgency === 'critical') {
+            return '#FFD700';
           }
 
-          return mode === 'bounties' ? 'rgba(255, 215, 0, 0.45)' : 'rgba(111, 216, 255, 0.32)';
+          return '#E2A336';
         }}
-        ringMaxRadius={(ring: object) => {
-          const datum = ring as GlobeRingDatum;
-          return datum.kind === 'selected' ? 1.3 : 0.86;
-        }}
-        ringPropagationSpeed={(ring: object) => {
-          const datum = ring as GlobeRingDatum;
-          return datum.kind === 'selected' ? 1.5 : 0.55;
-        }}
-        ringRepeatPeriod={(ring: object) => {
-          const datum = ring as GlobeRingDatum;
-          return datum.kind === 'selected' ? 820 : 0;
-        }}
-        ringResolution={18}
-        pointsData={[]}
-        customLayerData={mode === 'bounties' ? opportunities : []}
-        customThreeObject={(obj: object) => {
-          const opportunity = obj as Opportunity;
-          const height = Math.max(0.05, Math.min(opportunity.rewardAmount / 8000, 1.1));
-
-          const geometry = new THREE.CylinderGeometry(0.25, 0.25, height, 6);
-          geometry.translate(0, height / 2, 0);
-          geometry.rotateX(Math.PI / 2);
-
-          const material = new THREE.MeshLambertMaterial({
-            color: new THREE.Color('#FFD700'),
-            transparent: true,
-            opacity: 0.82,
-            emissive: new THREE.Color('#FFD700'),
-            emissiveIntensity: 0.45,
-          });
-
-          return new THREE.Mesh(geometry, material);
-        }}
-        customThreeObjectUpdate={(obj, datum) => {
-          const opportunity = datum as Opportunity;
-          const coords = globeRef.current?.getCoords(opportunity.coordinates.lat, opportunity.coordinates.lng, 0.02);
-          if (coords) {
-            Object.assign(obj.position, coords);
-          }
-        }}
-        customLayerLabel={(obj: object) => {
-          const opportunity = obj as Opportunity;
-          return `
-            <div style="
-              background: rgba(18, 18, 18, 0.96);
-              border: 1px solid rgba(255, 215, 0, 0.75);
-              padding: 12px;
-              border-radius: 10px;
-              color: white;
-              min-width: 220px;
-            ">
-              <div style="font-size: 10px; color: #FFD700; text-transform: uppercase; letter-spacing: 0.08em;">
-                ${opportunity.sponsorName}
-              </div>
-              <div style="font-size: 14px; font-weight: 700; margin: 6px 0 4px;">
-                ${opportunity.title}
-              </div>
-              <div style="font-size: 12px; color: #e5e5e5;">
-                ${opportunity.rewardLabel}
-              </div>
-            </div>
-          `;
-        }}
+        pointsMerge={true}
+        pointResolution={6}
+        pointsTransitionDuration={0}
       />
     </div>
   );
 }
+
+const BuilderGlobe = memo(BuilderGlobeComponent);
+
+export default BuilderGlobe;
