@@ -85,8 +85,8 @@ export default function Home() {
       return () => window.cancelIdleCallback(idleId);
     }
 
-    const timeout = window.setTimeout(scheduleWarmup, 900);
-    return () => window.clearTimeout(timeout);
+    const timeout = globalThis.setTimeout(scheduleWarmup, 900);
+    return () => globalThis.clearTimeout(timeout);
   }, [router]);
 
   const handleEnterGlobe = useCallback(async () => {
