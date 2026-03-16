@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Solana Superteam Builders",
   description: "Global network of Solana builders visualized on an interactive 3D globe",
+  icons: {
+    icon: "/superteam-logos/SUPERTEAM.jpg",
+    shortcut: "/superteam-logos/SUPERTEAM.jpg",
+    apple: "/superteam-logos/SUPERTEAM.jpg",
+  },
 };
 
 export default function RootLayout({
