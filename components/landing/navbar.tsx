@@ -6,6 +6,7 @@ import { SuperteamLogo } from '@/components/ui/SuperteamLogo';
 
 interface NavbarProps {
   onEnterGlobe?: () => void;
+  isLaunching?: boolean;
 }
 
 const NAV_LINKS = [
@@ -17,7 +18,7 @@ const NAV_LINKS = [
 /**
  * Sticky glass navbar with scroll-aware background.
  */
-export function Navbar({ onEnterGlobe }: NavbarProps) {
+export function Navbar({ onEnterGlobe, isLaunching = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -77,9 +78,10 @@ export function Navbar({ onEnterGlobe }: NavbarProps) {
           {/* CTA */}
           <button
             onClick={onEnterGlobe}
-            className="px-4 py-2 text-xs font-semibold text-[#09090B] bg-[#E4E4E7] rounded-xl hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            disabled={isLaunching}
+            className="px-4 py-2 text-xs font-semibold text-[#09090B] bg-[#E4E4E7] rounded-xl hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-70 disabled:cursor-wait"
           >
-            Launch Globe
+            {isLaunching ? 'Launching…' : 'Launch Globe'}
           </button>
         </nav>
       </div>

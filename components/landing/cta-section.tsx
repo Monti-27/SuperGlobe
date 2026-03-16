@@ -7,12 +7,13 @@ import { SuperteamLogo } from '@/components/ui/SuperteamLogo';
 interface CTASectionProps {
   onEnterGlobe: () => void;
   isLoading: boolean;
+  isLaunching?: boolean;
 }
 
 /**
  * Final call-to-action section.
  */
-export function CTASection({ onEnterGlobe, isLoading }: CTASectionProps) {
+export function CTASection({ onEnterGlobe, isLoading, isLaunching = false }: CTASectionProps) {
   return (
     <Section className="py-28">
       <FadeIn>
@@ -41,10 +42,10 @@ export function CTASection({ onEnterGlobe, isLoading }: CTASectionProps) {
 
             <button
               onClick={onEnterGlobe}
-              disabled={isLoading}
+              disabled={isLoading || isLaunching}
               className="mt-10 px-8 py-4 rounded-xl bg-[#E4E4E7] text-[#09090B] font-semibold text-sm transition-all hover:bg-white hover:shadow-[0_0_40px_rgba(255,255,255,0.1)] disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isLoading ? 'Loading…' : 'Enter Globe Experience →'}
+              {isLaunching ? 'Launching…' : isLoading ? 'Loading…' : 'Enter Globe Experience →'}
             </button>
           </div>
         </div>

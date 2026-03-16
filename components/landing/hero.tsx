@@ -23,15 +23,13 @@ interface HeroProps {
   onEnterGlobe: () => void;
   onOpenSearch: () => void;
   isLoading: boolean;
-  solPrice: number | null;
-  lastUpdatedAt: string | null;
+  isLaunching?: boolean;
 }
 
 export function Hero({
   onEnterGlobe,
   isLoading,
-  solPrice,
-  lastUpdatedAt,
+  isLaunching = false,
 }: HeroProps) {
   // Phase 1: map loads → map fades in at low opacity + text starts animating
   // Phase 2: text animation done → overlay fades out, map goes full opacity, CTA slides in
@@ -145,10 +143,10 @@ export function Hero({
             <div className="mt-9 flex justify-center">
               <button
                 onClick={onEnterGlobe}
-                disabled={isLoading}
+                disabled={isLoading || isLaunching}
                 className="px-7 py-3 rounded-xl bg-[#E4E4E7] text-[#09090B] font-semibold text-sm transition-all hover:bg-white hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] disabled:opacity-50"
               >
-                {isLoading ? 'Syncing\u2026' : 'Enter Globe Experience'}
+                {isLaunching ? 'Launching…' : isLoading ? 'Syncing\u2026' : 'Enter Globe Experience'}
               </button>
             </div>
           </div>
