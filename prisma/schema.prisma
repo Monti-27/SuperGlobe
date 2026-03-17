@@ -8,6 +8,54 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum AuthIdentityProvider {
+  EMAIL
+  WALLET
+  GITHUB
+}
+
+enum ProfileVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum OnboardingStep {
+  WELCOME
+  AUTH
+  IDENTITY
+  SOCIALS
+  SKILLS
+  INTENT
+  REVIEW
+  COMPLETED
+}
+
+enum SocialLinkType {
+  X
+  LINKEDIN
+  GITHUB
+  WEBSITE
+}
+
+enum SkillStatus {
+  APPROVED
+  PENDING
+}
+
+enum IntentType {
+  OPEN_TO_COLLAB
+  HIRING
+  FREELANCE
+  MENTORING
+  COFOUNDER
+  LEARNING
+}
+
+enum ProjectSource {
+  MANUAL
+  GITHUB
+}
+
 model Member {
   id        String   @id @default(cuid())
   name      String
@@ -19,4 +67,186 @@ model Member {
 
   @@index([country])
   @@index([name])
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String?          @unique
+  wallet          String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  authIdentities  AuthIdentity[]
+  sessions        Session[]
+  profile         BuilderProfile?
+  onboardingState OnboardingState?
+  githubConnection GitHubConnection?
+  githubSnapshot  GitHubSnapshot?
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuthIdentity {
+  id                String               @id @default(cuid())
+  userId            String
+  provider          AuthIdentityProvider
+  providerAccountId String
+  metadata          Json?
+  verifiedAt        DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model BuilderProfile {
+  id          String            @id @default(cuid())
+  userId       String            @unique
+  displayName  String?
+  bio          String?
+  avatarUrl    String?
+  country      String?
+  city         String?
+  visibility   ProfileVisibility @default(PRIVATE)
+  isPublished  Boolean           @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialLinks  SocialLink[]
+  skills       ProfileSkill[]
+  intents      ProfileIntent[]
+  projects     ProfileProject[]
+
+  @@index([country])
+  @@index([visibility, isPublished])
+}
+
+model SocialLink {
+  id         String         @id @default(cuid())
+  profileId   String
+  type        SocialLinkType
+  username    String?
+  url         String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  profile     BuilderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, type])
+  @@index([profileId])
+}
+
+model SkillTag {
+  id         String         @id @default(cuid())
+  slug       String         @unique
+  label      String         @unique
+  category   String?
+  isCurated  Boolean        @default(true)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  profiles   ProfileSkill[]
+}
+
+model ProfileSkill {
+  id          String         @id @default(cuid())
+  profileId    String
+  skillTagId   String?
+  customLabel  String?
+  status       SkillStatus   @default(APPROVED)
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  profile      BuilderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillTag     SkillTag?      @relation(fields: [skillTagId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@index([skillTagId])
+}
+
+model ProfileIntent {
+  id         String         @id @default(cuid())
+  profileId   String
+  intent      IntentType
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  profile     BuilderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, intent])
+  @@index([profileId])
+}
+
+model ProfileProject {
+  id           String         @id @default(cuid())
+  profileId     String
+  title         String
+  description   String?
+  url           String?
+  source        ProjectSource @default(MANUAL)
+  repoName      String?
+  language      String?
+  stars         Int?
+  isFeatured    Boolean       @default(false)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  profile       BuilderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model GitHubConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  username     String
+  avatarUrl    String?
+  profileUrl   String?
+  connectedAt  DateTime @default(now())
+  lastSyncedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GitHubSnapshot {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  username     String
+  avatarUrl    String?
+  profileUrl   String?
+  heatmapUrl   String?
+  pinnedRepos  Json?
+  topRepos     Json?
+  raw          Json?
+  lastFetchedAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OnboardingState {
+  id           String         @id @default(cuid())
+  userId       String         @unique
+  currentStep  OnboardingStep @default(WELCOME)
+  draft        Json?
+  skippedAt    DateTime?
+  completedAt  DateTime?
+  lastVisitedAt DateTime      @default(now())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
