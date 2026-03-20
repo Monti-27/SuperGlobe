@@ -8,7 +8,14 @@ export function cn(...inputs: ClassValue[]) {
 
 export const SKILLS_LIST = ['Rust', 'Solidity', 'Next.js', 'React', 'Mobile', 'Design', 'Full Stack', 'Backend', 'Frontend', 'DevOps'];
 
-export function getMemberSkills(wallet: string): string[] {
+export function getMemberSkills(
+  input: string | { wallet?: string | null; skills?: string[] | null }
+): string[] {
+  if (typeof input !== 'string' && input.skills && input.skills.length > 0) {
+    return input.skills;
+  }
+
+  const wallet = typeof input === 'string' ? input : input.wallet || '';
   if (!wallet) return ['Frontend', 'React'];
 
   // Deterministic hash from wallet string
@@ -32,6 +39,14 @@ export function getMemberSkills(wallet: string): string[] {
   }
 
   return Array.from(skills);
+}
+
+export function formatIntentLabel(intent: string) {
+  return intent
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 export const TECH_COLORS: Record<string, string> = {
