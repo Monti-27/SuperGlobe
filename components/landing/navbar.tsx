@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { SuperteamLogo } from '@/components/ui/SuperteamLogo';
+import { SignInButton } from '@/components/auth/SignInButton';
+import { type ProfileStatus } from '@/lib/onboarding';
 
 interface NavbarProps {
   onEnterGlobe?: () => void;
   isLaunching?: boolean;
+  onWalletClaim?: (result: { status: ProfileStatus }) => void;
 }
 
 const NAV_LINKS = [
@@ -15,10 +18,7 @@ const NAV_LINKS = [
   { label: 'Community', href: '#community' },
 ];
 
-/**
- * Sticky glass navbar with scroll-aware background.
- */
-export function Navbar({ onEnterGlobe, isLaunching = false }: NavbarProps) {
+export function Navbar({ onEnterGlobe, isLaunching = false, onWalletClaim }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -51,7 +51,6 @@ export function Navbar({ onEnterGlobe, isLaunching = false }: NavbarProps) {
               : 'bg-transparent',
           )}
         >
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08]">
               <SuperteamLogo className="h-5 w-5 text-[#E2A336]" />
@@ -61,7 +60,6 @@ export function Navbar({ onEnterGlobe, isLaunching = false }: NavbarProps) {
             </span>
           </div>
 
-          {/* Links — hidden on mobile */}
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <a
@@ -75,14 +73,16 @@ export function Navbar({ onEnterGlobe, isLaunching = false }: NavbarProps) {
             ))}
           </div>
 
-          {/* CTA */}
-          <button
-            onClick={onEnterGlobe}
-            disabled={isLaunching}
-            className="px-4 py-2 text-xs font-semibold text-[#09090B] bg-[#E4E4E7] rounded-xl hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-70 disabled:cursor-wait"
-          >
-            {isLaunching ? 'Launching…' : 'Launch Globe'}
-          </button>
+          <div className="flex items-center gap-3">
+            <SignInButton onClaimProfile={onWalletClaim} />
+            <button
+              onClick={onEnterGlobe}
+              disabled={isLaunching}
+              className="px-4 py-2 text-xs font-semibold text-[#09090B] bg-[#E4E4E7] rounded-xl hover:bg-white transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-70 disabled:cursor-wait"
+            >
+              {isLaunching ? 'Launching…' : 'Launch Globe'}
+            </button>
+          </div>
         </nav>
       </div>
     </header>
