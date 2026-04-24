@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, MotionValue, useScroll, useSpring, useTransform } from 'framer-motion';
+import { motion, MotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import TweetCard from '@/components/kokonutui/tweet-card';
 import { FadeIn } from './fade-in';
 
@@ -261,8 +261,8 @@ function TweetColumn({
 }) {
   return (
     <motion.div
-      className="relative flex w-1/4 min-w-[280px] flex-col gap-4 will-change-transform [contain:layout_paint_style]"
-      style={{ y }}
+      className="relative flex w-1/4 min-w-[280px] flex-col gap-4 transform-gpu will-change-transform [contain:layout_paint_style]"
+      style={{ y, willChange: 'transform' }}
     >
       {tweets.map((tweet, i) => (
         <TweetCard
@@ -289,25 +289,39 @@ function TweetColumn({
 export function ParallaxTestimonials() {
   const gallery = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(900);
+  const prefersReducedMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: gallery,
     offset: ['start end', 'end start'],
   });
 
-  // Keep travel distances bounded to avoid huge transform jumps on large screens.
-  const travel = Math.min(Math.max(height * 0.9, 520), 980);
+  const travel = Math.min(Math.max(height * 1.08, 700), 1320);
+  const y1Raw = useTransform(
+    scrollYProgress,
+    [0, 1],
+    prefersReducedMotion ? [0, 0] : [-travel * 0.42, travel * 0.58]
+  );
+  const y2Raw = useTransform(
+    scrollYProgress,
+    [0, 1],
+    prefersReducedMotion ? [0, 0] : [-travel * 0.78, travel * 0.94]
+  );
+  const y3Raw = useTransform(
+    scrollYProgress,
+    [0, 1],
+    prefersReducedMotion ? [0, 0] : [-travel * 0.24, travel * 0.36]
+  );
+  const y4Raw = useTransform(
+    scrollYProgress,
+    [0, 1],
+    prefersReducedMotion ? [0, 0] : [-travel * 0.62, travel * 0.8]
+  );
 
-  const y1Raw = useTransform(scrollYProgress, [0, 1], [-220, travel * 0.66]);
-  const y2Raw = useTransform(scrollYProgress, [0, 1], [-340, travel]);
-  const y3Raw = useTransform(scrollYProgress, [0, 1], [-160, travel * 0.48]);
-  const y4Raw = useTransform(scrollYProgress, [0, 1], [-280, travel * 0.84]);
-
-  // Add light spring smoothing to reduce perceived stutter from uneven scroll deltas.
-  const y1 = useSpring(y1Raw, { stiffness: 85, damping: 24, mass: 0.3 });
-  const y2 = useSpring(y2Raw, { stiffness: 85, damping: 24, mass: 0.3 });
-  const y3 = useSpring(y3Raw, { stiffness: 85, damping: 24, mass: 0.3 });
-  const y4 = useSpring(y4Raw, { stiffness: 85, damping: 24, mass: 0.3 });
+  const y1 = useSpring(y1Raw, { stiffness: 130, damping: 28, mass: 0.32 });
+  const y2 = useSpring(y2Raw, { stiffness: 130, damping: 28, mass: 0.32 });
+  const y3 = useSpring(y3Raw, { stiffness: 130, damping: 28, mass: 0.32 });
+  const y4 = useSpring(y4Raw, { stiffness: 130, damping: 28, mass: 0.32 });
 
   useEffect(() => {
     const resize = () => {
@@ -339,10 +353,7 @@ export function ParallaxTestimonials() {
       </div>
 
       {/* Parallax gallery */}
-      <div
-        ref={gallery}
-        className="relative box-border flex h-[145vh] gap-4 overflow-hidden px-4 md:px-6"
-      >
+      <div ref={gallery} className="relative box-border flex h-[165vh] gap-4 overflow-hidden px-4 md:px-6">
         {/* Fade edges — top and bottom */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-[#09090B] to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32 bg-gradient-to-t from-[#09090B] to-transparent" />
