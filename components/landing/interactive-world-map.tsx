@@ -1,36 +1,40 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import WorldMap, { type CountryContext, type DataItem, type ISOCode } from 'react-svg-worldmap';
+import WorldMap, { regions, type CountryContext, type DataItem, type ISOCode } from 'react-svg-worldmap';
 
-/**
- * Superteam country chapters — ISO alpha-2 codes.
- * Value = relative "builder density" for color intensity.
- */
-const SUPERTEAM_COUNTRIES: DataItem<number>[] = [
-  { country: 'in' as ISOCode, value: 2800 },
-  { country: 'ng' as ISOCode, value: 950 },
-  { country: 'vn' as ISOCode, value: 820 },
-  { country: 'tr' as ISOCode, value: 750 },
-  { country: 'de' as ISOCode, value: 680 },
-  { country: 'gb' as ISOCode, value: 640 },
-  { country: 'br' as ISOCode, value: 580 },
-  { country: 'mx' as ISOCode, value: 520 },
-  { country: 'ph' as ISOCode, value: 480 },
-  { country: 'jp' as ISOCode, value: 440 },
-  { country: 'kr' as ISOCode, value: 400 },
-  { country: 'sg' as ISOCode, value: 380 },
-  { country: 'ae' as ISOCode, value: 350 },
-  { country: 'fr' as ISOCode, value: 320 },
-  { country: 'us' as ISOCode, value: 1200 },
-  { country: 'ca' as ISOCode, value: 300 },
-  { country: 'id' as ISOCode, value: 280 },
-  { country: 'ua' as ISOCode, value: 260 },
-  { country: 'pl' as ISOCode, value: 240 },
-  { country: 'ar' as ISOCode, value: 220 },
-  { country: 'ke' as ISOCode, value: 200 },
-  { country: 'eg' as ISOCode, value: 180 },
-];
+const COUNTRY_TO_ISO: Record<string, string> = {
+  'India': 'in',
+  'Turkey': 'tr',
+  'Vietnam': 'vn',
+  'Germany': 'de',
+  'United Kingdom': 'gb',
+  'UAE': 'ae',
+  'Nigeria': 'ng',
+  'Brazil': 'br',
+  'Philippines': 'ph',
+  'Malaysia': 'my',
+  'Balkans': 'rs',
+  'Japan': 'jp',
+  'France': 'fr',
+  'Canada': 'ca',
+  'Singapore': 'sg',
+  'South Korea': 'kr',
+  'Indonesia': 'id',
+  'Ireland': 'ie',
+  'Kazakhstan': 'kz',
+  'Netherlands': 'nl',
+  'Poland': 'pl',
+  'Georgia': 'ge',
+  'Spain': 'es',
+  'Ukraine': 'ua',
+  'Mexico': 'mx',
+  'USA': 'us',
+  'Australia': 'au',
+  'Israel': 'il',
+};
+
+const SUPPORTED_ISO_CODES = new Set(regions.map((region) => region.code.toLowerCase()));
 
 interface InteractiveWorldMapProps {
   onCountryClick?: (countryName: string) => void;
@@ -41,9 +45,41 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapWidth, setMapWidth] = useState<number | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [mapData, setMapData] = useState<DataItem<number>[]>([]);
   const readyFired = useRef(false);
 
-  // Measure container width and set map to ~105% for a subtle spread
+  useEffect(() => {
+    async function fetchMapData() {
+      try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+        
+        if (data && data.countries) {
+          const formattedData: DataItem<number>[] = data.countries
+            .map((countryRecord: { country: string; count: number }) => {
+              const country = COUNTRY_TO_ISO[countryRecord.country];
+
+              if (!country || !SUPPORTED_ISO_CODES.has(country)) {
+                return null;
+              }
+
+              return {
+                country: country as ISOCode,
+                value: countryRecord.count,
+              };
+            })
+            .filter((item: DataItem<number> | null): item is DataItem<number> => Boolean(item));
+            
+          setMapData(formattedData);
+        }
+      } catch (error) {
+        console.error('Failed to load map data', error);
+      }
+    }
+    
+    fetchMapData();
+  }, []);
+
   useEffect(() => {
     const measure = () => {
       if (containerRef.current) {
@@ -57,10 +93,8 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // Once we have a valid width, mark as ready after a tick so the SVG has painted
   useEffect(() => {
     if (mapWidth && !readyFired.current) {
-      // Small delay to let the SVG fully render before fading in
       const timer = setTimeout(() => {
         setIsReady(true);
         readyFired.current = true;
@@ -74,7 +108,6 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
     (context: CountryContext<number>): React.CSSProperties => {
       const { countryValue, minValue, maxValue } = context;
 
-      // Countries NOT in the dataset — match page background exactly
       if (countryValue === undefined) {
         return {
           fill: '#111114',
@@ -85,12 +118,10 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
         };
       }
 
-      // Countries WITH data — amber gradient based on value
       const value = typeof countryValue === 'number' ? countryValue : 0;
       const range = maxValue - minValue || 1;
-      const normalized = (value - minValue) / range;
+      const normalized = range > 0 ? (value - minValue) / range : 1;
 
-      // Interpolate from dim amber (#1c1708) to bright amber (#E2A336)
       const minR = 0x1c, minG = 0x17, minB = 0x08;
       const maxR = 0xe2, maxG = 0xa3, maxB = 0x36;
 
@@ -122,7 +153,7 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
 
   const tooltipTextFunction = useCallback((context: CountryContext<number>): string => {
     if (context.countryValue === undefined) return '';
-    return `${context.countryName}: ${Number(context.countryValue).toLocaleString()} builders`;
+    return String(context.countryValue);
   }, []);
 
   return (
@@ -134,20 +165,28 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
         transition: 'opacity 0.6s ease-out',
       }}
     >
-      {mapWidth && (
+      {mapWidth && mapData.length > 0 && (
         <div
           style={{
             width: `${mapWidth}px`,
             flexShrink: 0,
           }}
         >
+          <style>
+            {`
+              .interactive-world-map svg path[fill]:not([fill="#111114"]):hover {
+                fill: #E2A336 !important;
+                opacity: 1 !important;
+                transition: fill 0.2s ease, opacity 0.2s ease;
+              }
+            `}
+          </style>
           <WorldMap
             color="#E2A336"
             backgroundColor="transparent"
             borderColor="#18181c"
             size={mapWidth}
-            data={SUPERTEAM_COUNTRIES}
-            valueSuffix="builders"
+            data={mapData}
             tooltipBgColor="#18181B"
             tooltipTextColor="#E2A336"
             strokeOpacity={0.12}
