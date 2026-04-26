@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { VerifiedIcon } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ type TweetCardProps = {
   reply?: ReplyProps;
 };
 
-export default function TweetCard({
+const TweetCard = memo(function TweetCard({
   authorName = "Dorian",
   authorHandle = "dorianbaffier",
   authorImage = "https://pbs.twimg.com/profile_images/1992215290936205312/N_EuwLUO_400x400.jpg",
@@ -50,28 +51,26 @@ export default function TweetCard({
     <Link
       href={tweetUrl}
       target="_blank"
+      prefetch={false}
     >
       <div
         className={cn(
           "relative isolate w-full overflow-hidden rounded-2xl p-1.5",
-          "bg-white/5 dark:bg-black/90",
-          "bg-linear-to-br from-black/5 to-black/[0.02] dark:from-white/5 dark:to-white/[0.02]",
-          "backdrop-blur-xl backdrop-saturate-[180%]",
-          "border border-black/10 dark:border-white/10",
-          "shadow-[0_8px_16px_rgb(0_0_0_/_0.15)] dark:shadow-[0_8px_16px_rgb(0_0_0_/_0.25)]",
+          "bg-zinc-900/95",
+          "border border-zinc-800",
+          "shadow-[0_6px_14px_rgb(0_0_0_/_0.26)]",
           "translate-z-0 will-change-transform"
         )}
       >
         <div
           className={cn(
             "relative w-full rounded-xl p-5",
-            "bg-linear-to-br from-black/[0.05] to-transparent dark:from-white/[0.08] dark:to-transparent",
-            "backdrop-blur-md backdrop-saturate-150",
-            "border border-black/[0.05] dark:border-white/[0.08]",
-            "text-black/90 dark:text-white",
+            "bg-zinc-950",
+            "border border-zinc-800",
+            "text-zinc-100",
             "shadow-xs",
             "translate-z-0 will-change-transform",
-            "before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-black/[0.02] before:to-black/[0.01] before:opacity-0 before:transition-opacity dark:before:from-white/[0.03] dark:before:to-white/[0.01]",
+            "before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-zinc-900/0 before:to-zinc-900/0 before:opacity-0 before:transition-opacity",
             "hover:before:opacity-100"
           )}
         >
@@ -82,6 +81,8 @@ export default function TweetCard({
                   alt={authorName}
                   className="h-full w-full object-cover"
                   src={authorImage}
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -90,19 +91,19 @@ export default function TweetCard({
               <div className="flex items-start justify-between">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
-                    <span className="cursor-pointer font-semibold text-black hover:underline dark:text-white/90">
+                    <span className="cursor-pointer font-semibold text-zinc-100 hover:underline">
                       {authorName}
                     </span>
                     {isVerified && (
                       <VerifiedIcon className="h-4 w-4 text-blue-400" />
                     )}
                   </div>
-                  <span className="text-black text-sm dark:text-white/60">
+                  <span className="text-sm text-zinc-400">
                     @{authorHandle}
                   </span>
                 </div>
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-lg p-1 text-black hover:bg-black/5 hover:text-black dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
                   type="button"
                 >
                   <svg
@@ -127,19 +128,19 @@ export default function TweetCard({
           <div className="mt-2">
             {content.map((item, index) => (
               <p
-                className="text-base text-black dark:text-white/90"
+                className="text-base text-zinc-200"
                 key={index}
               >
                 {item}
               </p>
             ))}
-            <span className="mt-2 block text-black text-sm dark:text-white/50">
+            <span className="mt-2 block text-sm text-zinc-400">
               {timestamp}
             </span>
           </div>
 
           {reply && (
-            <div className="mt-4 border-black/[0.08] border-t pt-4 dark:border-white/[0.08]">
+            <div className="mt-4 border-t border-zinc-800 pt-4">
               <div className="flex gap-3">
                 <div className="shrink-0">
                   <div className="h-10 w-10 overflow-hidden rounded-full">
@@ -147,28 +148,30 @@ export default function TweetCard({
                       alt={reply.authorName}
                       className="h-full w-full object-cover"
                       src={reply.authorImage}
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1">
-                    <span className="cursor-pointer font-semibold text-black hover:underline dark:text-white/90">
+                    <span className="cursor-pointer font-semibold text-zinc-100 hover:underline">
                       {reply.authorName}
                     </span>
                     {reply.isVerified && (
                       <VerifiedIcon className="h-4 w-4 text-blue-400" />
                     )}
-                    <span className="text-black text-sm dark:text-white/60">
+                    <span className="text-sm text-zinc-400">
                       @{reply.authorHandle}
                     </span>
-                    <span className="text-black text-sm dark:text-white/60">
+                    <span className="text-sm text-zinc-400">
                       ·
                     </span>
-                    <span className="text-black text-sm dark:text-white/60">
+                    <span className="text-sm text-zinc-400">
                       {reply.timestamp}
                     </span>
                   </div>
-                  <p className="mt-1 text-black text-sm dark:text-white/80">
+                  <p className="mt-1 text-sm text-zinc-300">
                     {reply.content}
                   </p>
                 </div>
@@ -179,4 +182,6 @@ export default function TweetCard({
       </div>
     </Link>
   );
-}
+});
+
+export default TweetCard;

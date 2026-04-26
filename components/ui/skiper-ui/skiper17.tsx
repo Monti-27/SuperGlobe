@@ -1,184 +1,120 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import {
+  motion,
+  useInView,
+  useMotionValue,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { ReactLenis } from "lenis/react";
 
-import { cn } from "@/lib/utils";
+const defaultCards = [
+  "/images/76f12a8b-e1f3-48d7-ad3a-1ca0ab558370_5760x3840.jpg",
+  "/images/G2jrVKTXAAAp7bU.jpeg",
+  "/images/G2lSEI3XgAA08sF.jpeg",
+  "/images/G2qwbY0XwAA7I98.jpeg",
+  "/images/G3nhywGX0AA6A65.jpeg",
+  "/images/G40iWRbWYAA1iRC.jpeg",
+  "/images/G45crCnXIAECqMw.jpeg",
+  "/images/G5PWFRJa0AAr_oU.jpeg",
+  "/images/G78qnagagAQg5oA.jpeg",
+  "/images/GTUD81VWUAAWQhJ.jpeg",
+  "/images/GTfaw5daQAAqAfz.jpeg",
+  "/images/Gm46P4yakAA6m8c.jpeg",
+  "/images/GrkGyPiWgAAuGdG.jpeg",
+  "/images/HDKby2GXcAAZqNZ.jpeg",
+];
 
-interface CardData {
-  id: number | string;
-  image: string;
-  alt?: string;
-}
-
-interface StickyCard002Props {
-  cards: CardData[];
-  className?: string;
-  containerClassName?: string;
-  imageClassName?: string;
-}
-
-const StickyCard002 = ({
-  cards,
-  className,
-  containerClassName,
-  imageClassName,
-}: StickyCard002Props) => {
-  const container = useRef(null);
-  const imageRefs = useRef<(HTMLImageElement | null)[]>([]);
-
-  useGSAP(
-    () => {
-      gsap.registerPlugin(ScrollTrigger);
-
-      const imageElements = imageRefs.current;
-      const totalCards = imageElements.length;
-
-      if (!imageElements[0]) return;
-
-      gsap.set(imageElements[0], { y: "0%", scale: 1, rotation: 0 });
-
-      for (let i = 1; i < totalCards; i++) {
-        if (!imageElements[i]) continue;
-        gsap.set(imageElements[i], { y: "100%", scale: 1, rotation: 0 });
-      }
-
-      const scrollTimeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: container.current,
-          start: "center center",
-          end: `+=${window.innerHeight * (totalCards + 1)}`,
-          pin: true,
-          scrub: 1,
-          pinSpacing: true,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      for (let i = 0; i < totalCards - 1; i++) {
-        const currentImage = imageElements[i];
-        const nextImage = imageElements[i + 1];
-        const position = i;
-        if (!currentImage || !nextImage) continue;
-
-        scrollTimeline.to(
-          currentImage,
-          {
-            scale: 0.7,
-            rotation: 5,
-            duration: 1,
-            ease: "power1.inOut",
-          },
-          position,
-        );
-
-        scrollTimeline.to(
-          nextImage,
-          {
-            y: "0%",
-            duration: 1,
-            ease: "power1.inOut",
-          },
-          position,
-        );
-      }
-
-      const resizeObserver = new ResizeObserver(() => {
-        ScrollTrigger.refresh();
-      });
-
-      if (container.current) {
-        resizeObserver.observe(container.current);
-      }
-
-      return () => {
-        resizeObserver.disconnect();
-        scrollTimeline.kill();
-        ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-      };
-    },
-    { scope: container },
+const Skiper17 = () => {
+  return (
+    <ReactLenis root>
+      <section className="relative flex w-full flex-col items-center gap-[15vh] px-4 pt-[30vh] pb-[40vh] z-20">
+        <div className="absolute left-1/2 top-24 grid w-full -translate-x-1/2 content-start justify-items-center gap-2 text-center pointer-events-none z-30 mix-blend-difference">
+          <p className="text-[10px] font-data uppercase tracking-[0.2em] text-[#E2A336] mb-3">
+            Gallery
+          </p>
+          <h2 className="text-4xl md:text-6xl font-serif tracking-tight text-white mb-2">
+            Superteam in
+            <span className="text-white/50 italic ml-2 transition-opacity">action</span>
+          </h2>
+        </div>
+        
+        {defaultCards.map((img, idx) => (
+          <StickyCard_003 key={idx} imgUrl={img} />
+        ))}
+      </section>
+    </ReactLenis>
   );
+};
+
+const StickyCard_003 = ({ imgUrl }: { imgUrl: string }) => {
+  const vertMargin = 18;
+  const container = useRef(null);
+  const [maxScrollY, setMaxScrollY] = useState(Infinity);
+
+  const filter = useMotionValue(0);
+  const negateFilter = useTransform(filter, (value) => -value);
+
+  const { scrollY } = useScroll({
+    target: container,
+  });
+  
+  const scale = useTransform(scrollY, [maxScrollY, maxScrollY + 10000], [1, 0]);
+  
+  const isInView = useInView(container, {
+    margin: `0px 0px -${100 - vertMargin}% 0px`,
+    once: true,
+  });
+
+  scrollY.on("change", (scrollY) => {
+    let animationValue = 1;
+    if (scrollY > maxScrollY) {
+      animationValue = Math.max(0, 1 - (scrollY - maxScrollY) / 10000);
+    }
+
+    scale.set(animationValue);
+    filter.set((1 - animationValue) * 100);
+  });
+
+  useEffect(() => {
+    if (!isInView) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setMaxScrollY(scrollY.get());
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isInView, scrollY]);
 
   return (
-    <section className={cn("relative w-full bg-[#09090B] z-20 overflow-hidden py-16", className)} ref={container}>
-      {/* Header - Now pinned with the images */}
-      <div className="mx-auto max-w-6xl px-6 md:px-8 mb-10 text-center shrink-0">
-        <p className="text-[10px] font-data uppercase tracking-[0.2em] text-[#E2A336]/50 mb-3">
-          Gallery
-        </p>
-        <h2 className="text-3xl md:text-4xl font-serif tracking-tight text-white mb-2">
-          Superteam in
-          <span className="text-white/35 italic ml-2">action</span>
-        </h2>
-      </div>
-
-      {/* Image Stack */}
-      <div className="flex w-full items-center justify-center pointer-events-none">
-        <div
-          className={cn(
-            "relative w-full h-[60vh] max-h-[600px] min-h-[400px] max-w-sm rounded-lg sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl 2xl:max-w-3xl aspect-[4/3] md:aspect-[16/9] shadow-2xl overflow-hidden",
-            containerClassName,
-          )}
-        >
-          {cards.map((card, i) => (
-            <img
-              key={card.id}
-              src={card.image}
-              alt={card.alt || ""}
-              className={cn(
-                "rounded-4xl absolute h-full w-full object-cover shadow-[0_0_40px_rgba(0,0,0,0.5)]",
-                imageClassName,
-              )}
-              ref={(el) => {
-                imageRefs.current[i] = el;
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </section>
+    <motion.div
+      ref={container}
+      className="rounded-[2rem] sticky w-full max-w-3xl overflow-hidden bg-[#0c0c0c] border border-white/5 shadow-2xl"
+      style={{
+        scale: scale,
+        rotate: filter,
+        height: `${100 - 2 * vertMargin}vh`,
+        top: `${vertMargin}vh`,
+        marginBottom: "6vh"
+      }}
+    >
+      <motion.img
+        src={imgUrl}
+        alt="Superteam in action"
+        style={{
+          rotate: negateFilter,
+        }}
+        className="h-full w-full scale-125 object-cover opacity-90 hover:opacity-100 transition-opacity duration-700"
+        sizes="90vw"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-black/10 pointer-events-none rounded-[2rem]" />
+    </motion.div>
   );
 };
 
-// Example usage component with default data
-const Skiper17 = () => {
-  const defaultCards = [
-    { id: 1, image: "/images/76f12a8b-e1f3-48d7-ad3a-1ca0ab558370_5760x3840.jpg" },
-    { id: 2, image: "/images/G2jrVKTXAAAp7bU.jpeg" },
-    { id: 3, image: "/images/G2lSEI3XgAA08sF.jpeg" },
-    { id: 4, image: "/images/G2qwbY0XwAA7I98.jpeg" },
-    { id: 5, image: "/images/G3nhywGX0AA6A65.jpeg" },
-    { id: 6, image: "/images/G40iWRbWYAA1iRC.jpeg" },
-    { id: 7, image: "/images/G45crCnXIAECqMw.jpeg" },
-    { id: 8, image: "/images/G5PWFRJa0AAr_oU.jpeg" },
-    { id: 9, image: "/images/G78qnagagAQg5oA.jpeg" },
-    { id: 10, image: "/images/GTUD81VWUAAWQhJ.jpeg" },
-    { id: 11, image: "/images/GTfaw5daQAAqAfz.jpeg" },
-    { id: 12, image: "/images/Gm46P4yakAA6m8c.jpeg" },
-    { id: 13, image: "/images/GrkGyPiWgAAuGdG.jpeg" },
-    { id: 14, image: "/images/HDKby2GXcAAZqNZ.jpeg" },
-  ];
-
-  return <StickyCard002 cards={defaultCards} />;
-};
-
-export { Skiper17, StickyCard002 };
-
-/**
- * Skiper 17 StickyCard_002 — React + Gsap + scrollTrigger
- * We respect the original creators. This is an inspired rebuild with our own taste and does not claim any ownership.
- *
- * License & Usage:
- * - Free to use and modify in both personal and commercial projects.
- * - Attribution to Skiper UI is required when using the free version.
- * - No attribution required with Skiper UI Pro.
- *
- * Feedback and contributions are welcome.
- *
- * Author: @gurvinder-singh02
- * Website: https://gxuri.in
- * Twitter: https://x.com/Gur__vi
- */
+export { Skiper17, StickyCard_003 };
