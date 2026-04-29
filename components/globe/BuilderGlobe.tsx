@@ -87,6 +87,13 @@ const BUILDER_ACCENT = '#6fd8ff';
 const MAX_DEVICE_PIXEL_RATIO = 1.25;
 const EMPTY_MEMBERS: Member[] = [];
 const EMPTY_OPPORTUNITIES: Opportunity[] = [];
+const COUNTRY_DATA_URL = '/data/custom.geo.json';
+const COUNTRY_POLYGON_ALTITUDE = 0.005;
+const SELECTED_POLYGON_ALTITUDE = 0.0064;
+const POLYGON_TRANSITION_DURATION_MS = 260;
+const GLOBE_TEXTURE_URL = '/textures/earth-blue-marble.jpg';
+const GLOBE_BUMP_URL = '/textures/earth-topology.png';
+const GLOBE_BACKGROUND_URL = '/textures/night-sky.png';
 
 let cachedCountries: GeoFeature[] | null = null;
 let countriesPromise: Promise<GeoFeature[]> | null = null;
@@ -115,7 +122,7 @@ function loadCountries(): Promise<GeoFeature[]> {
   }
 
   if (!countriesPromise) {
-    countriesPromise = fetch('/data/world.geojson')
+    countriesPromise = fetch(COUNTRY_DATA_URL)
       .then((res) => res.json())
       .then((data: GeoJSON) => {
         cachedCountries = preprocessCountries(data);
@@ -368,7 +375,7 @@ function BuilderGlobeComponent({
     }
 
     return activeFilter
-      ? members.filter((member) => getMemberSkills(member.wallet).includes(activeFilter))
+      ? members.filter((member) => getMemberSkills(member).includes(activeFilter))
       : members;
   }, [members, activeFilter, mode]);
 
@@ -397,6 +404,38 @@ function BuilderGlobeComponent({
   }, [opportunities]);
 
   const activeCountByCountry = mode === 'builders' ? memberCountByCountry : opportunityCountByCountry;
+
+  const palette = useMemo(() => {
+    if (mode === 'bounties') {
+      return {
+        idleFill: 'rgba(12, 11, 8, 0.82)',
+        activeFill: 'rgba(58, 40, 8, 0.88)',
+        hoverFillIdle: 'rgba(255, 255, 255, 0.12)',
+        hoverFillActive: 'rgba(255, 215, 0, 0.2)',
+        selectedFill: 'rgba(255, 215, 0, 0.42)',
+        idleStroke: 'rgba(255,255,255,0.08)',
+        activeStroke: 'rgba(255,215,0,0.16)',
+        hoverStrokeIdle: 'rgba(255,255,255,0.26)',
+        hoverStrokeActive: 'rgba(255,215,0,0.74)',
+        selectedStroke: 'rgba(255,215,0,0.98)',
+        sideColor: 'rgba(0,0,0,0.18)',
+      };
+    }
+
+    return {
+      idleFill: 'rgba(10, 12, 19, 0.82)',
+      activeFill: 'rgba(10, 12, 19, 0.82)',
+      hoverFillIdle: 'rgba(255, 255, 255, 0.08)',
+      hoverFillActive: 'rgba(111, 216, 255, 0.18)',
+      selectedFill: 'rgba(111, 216, 255, 0.34)',
+      idleStroke: 'rgba(255,255,255,0.08)',
+      activeStroke: 'rgba(255,255,255,0.08)',
+      hoverStrokeIdle: 'rgba(255,255,255,0.24)',
+      hoverStrokeActive: 'rgba(111,216,255,0.78)',
+      selectedStroke: 'rgba(255,255,255,0.98)',
+      sideColor: 'rgba(0,0,0,0.18)',
+    };
+  }, [mode]);
 
   const getCountryCount = useCallback(
     (country: string | null) => {
@@ -439,11 +478,23 @@ function BuilderGlobeComponent({
 
       if (!rawCountry || !canonicalCountry) {
         maybeLogResolutionMiss(rawCountry);
+        return palette.idleFill;
       }
 
-      return 'rgba(0,0,0,0)';
+      const interactive = isInteractiveCountry(canonicalCountry);
+      const isHovered = hoverCountry === canonicalCountry;
+
+      if (normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry) {
+        return palette.selectedFill;
+      }
+
+      if (isHovered) {
+        return interactive ? palette.hoverFillActive : palette.hoverFillIdle;
+      }
+
+      return interactive ? palette.activeFill : palette.idleFill;
     },
-    [maybeLogResolutionMiss, resolvePolygonCountry]
+    [hoverCountry, isInteractiveCountry, maybeLogResolutionMiss, normalizedSelectedCountry, palette, resolvePolygonCountry]
   );
 
   const polygonStrokeColor = useCallback(
@@ -451,28 +502,31 @@ function BuilderGlobeComponent({
       const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
 
       if (!rawCountry || !canonicalCountry) {
-        return 'rgba(255,255,255,0.08)';
+        return palette.idleStroke;
       }
 
+      const interactive = isInteractiveCountry(canonicalCountry);
+      const isHovered = hoverCountry === canonicalCountry;
       const isSelected = normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry;
+
       if (isSelected) {
-        return mode === 'bounties' ? 'rgba(255, 215, 0, 0.98)' : 'rgba(255,255,255,0.98)';
+        return palette.selectedStroke;
       }
 
-      if (hoverCountry && canonicalCountry === hoverCountry) {
-        return mode === 'bounties' ? 'rgba(255, 215, 0, 0.7)' : 'rgba(111, 216, 255, 0.78)';
+      if (isHovered) {
+        return interactive ? palette.hoverStrokeActive : palette.hoverStrokeIdle;
       }
 
-      return isInteractiveCountry(canonicalCountry) ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)';
+      return interactive ? palette.activeStroke : palette.idleStroke;
     },
-    [hoverCountry, isInteractiveCountry, mode, normalizedSelectedCountry, resolvePolygonCountry]
+    [hoverCountry, isInteractiveCountry, normalizedSelectedCountry, palette, resolvePolygonCountry]
   );
 
   const polygonLabel = useCallback(
     (polygon: object) => {
       const { rawCountry, canonicalCountry } = resolvePolygonCountry(polygon);
 
-      if (!rawCountry || !canonicalCountry || !isInteractiveCountry(canonicalCountry)) {
+      if (!rawCountry || !canonicalCountry) {
         return '';
       }
 
@@ -482,9 +536,13 @@ function BuilderGlobeComponent({
 
       const count = getCountryCount(canonicalCountry);
       const metricLabel =
-        mode === 'bounties'
-          ? `${count.toLocaleString()} open opportunities`
-          : `${count.toLocaleString()} builders`;
+        count > 0
+          ? mode === 'bounties'
+            ? `${count.toLocaleString()} open opportunities`
+            : `${count.toLocaleString()} builders`
+          : mode === 'bounties'
+            ? 'No live opportunities'
+            : 'No builders yet';
 
       const logoFile = COUNTRY_LOGOS[canonicalCountry] || 'SUPERTEAM.jpg';
       const logoPath = `/superteam-logos/${logoFile}`;
@@ -511,7 +569,7 @@ function BuilderGlobeComponent({
         </div>
       `;
     },
-    [getCountryCount, isInteractiveCountry, mode, normalizedSelectedCountry, resolvePolygonCountry]
+    [getCountryCount, mode, normalizedSelectedCountry, resolvePolygonCountry]
   );
 
   const handlePolygonClick = useCallback(
@@ -550,10 +608,7 @@ function BuilderGlobeComponent({
       maybeLogResolutionMiss(rawCountry);
     }
 
-    const nextHoverCountry =
-      canonicalCountry && isInteractiveCountry(canonicalCountry)
-        ? canonicalCountry
-        : null;
+    const nextHoverCountry = canonicalCountry || null;
 
     setHoverCountry((prev) => (prev === nextHoverCountry ? prev : nextHoverCountry));
 
@@ -631,23 +686,25 @@ function BuilderGlobeComponent({
         }}
         lineHoverPrecision={0.2}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl="/textures/earth-night.jpg"
-        atmosphereColor={mode === 'bounties' ? '#ffd27a' : '#6fd8ff'}
-        atmosphereAltitude={0.065}
+        backgroundImageUrl={GLOBE_BACKGROUND_URL}
+        globeImageUrl={GLOBE_TEXTURE_URL}
+        bumpImageUrl={GLOBE_BUMP_URL}
+        atmosphereColor={mode === 'bounties' ? '#f3c46d' : '#8ddfff'}
+        atmosphereAltitude={0.11}
         polygonsData={countries}
-        polygonCapCurvatureResolution={10}
-        polygonsTransitionDuration={0}
+        polygonCapCurvatureResolution={4}
+        polygonsTransitionDuration={POLYGON_TRANSITION_DURATION_MS}
         polygonAltitude={(polygon: object) => {
           const { canonicalCountry } = resolvePolygonCountry(polygon);
 
           if (normalizedSelectedCountry && canonicalCountry === normalizedSelectedCountry) {
-            return mode === 'bounties' ? 0.0032 : 0.003;
+            return SELECTED_POLYGON_ALTITUDE;
           }
 
-          return 0.0012;
+          return COUNTRY_POLYGON_ALTITUDE;
         }}
         polygonCapColor={polygonCapColor}
-        polygonSideColor={() => 'rgba(0,0,0,0)'}
+        polygonSideColor={() => palette.sideColor}
         polygonStrokeColor={polygonStrokeColor}
         polygonLabel={polygonLabel}
         onPolygonClick={handlePolygonClick}

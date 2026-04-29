@@ -3,9 +3,12 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { GlobeMethods } from 'react-globe.gl';
+import { Toaster, toast } from 'sonner';
 import { type Member } from '@/lib/mock-data';
+import { BuilderOnboardingDialog } from '@/components/onboarding/BuilderOnboardingDialog';
 import { MembersDrawer } from '@/components/dashboard/MembersDrawer';
 import { CommandSearch } from '@/components/dashboard/CommandSearch';
 import { CountrySidebar } from '@/components/dashboard/CountrySidebar';
@@ -20,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ViewMode } from '@/components/dashboard/ModeSwitcher';
 import { normalizeCountry } from '@/lib/country-normalization';
+import { type ProfileStatus } from '@/lib/onboarding';
 
 const BuilderGlobe = dynamic(() => import('@/components/globe/BuilderGlobe'), {
   ssr: false,
@@ -38,12 +42,16 @@ interface GlobeExperienceProps {
   initialOpportunities: Opportunity[];
 }
 
+const PROFILE_PROMPT_TOAST_ID = 'globe-profile-prompt';
+
 export function GlobeExperience({
   initialMembers,
   initialCountryStats,
   initialOpportunities,
 }: GlobeExperienceProps) {
+  const router = useRouter();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const profilePromptShownRef = useRef(false);
 
   const [mode, setMode] = useState<ViewMode>('builders');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -66,6 +74,8 @@ export function GlobeExperience({
     return true;
   });
   const [countryIntelligence, setCountryIntelligence] = useState<CountryIntelligence[]>([]);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('unauthenticated');
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   const members = initialMembers;
   const countryStats = initialCountryStats;
@@ -86,6 +96,25 @@ export function GlobeExperience({
       })
       .catch((error) => {
         console.error('Failed to hydrate country intelligence:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/me/status', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!cancelled) {
+          setProfileStatus(payload.status as ProfileStatus);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to hydrate profile status inside globe:', error);
       });
 
     return () => {
@@ -144,7 +173,7 @@ export function GlobeExperience({
     }
   }, []);
 
-  const visibleCountryList = useMemo(() => countryStats.slice(0, 10).map((item) => item.country), [countryStats]);
+  const visibleCountryList = useMemo(() => countryStats.map((item) => item.country), [countryStats]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -229,6 +258,52 @@ export function GlobeExperience({
     window.dispatchEvent(new Event('open-command-search'));
   }, []);
 
+  const showProfilePrompt =
+    profileStatus !== 'authenticated_completed_public' && profileStatus !== 'authenticated_completed_private';
+
+  useEffect(() => {
+    if (onboardingOpen) {
+      toast.dismiss(PROFILE_PROMPT_TOAST_ID);
+    }
+  }, [onboardingOpen]);
+
+  useEffect(() => {
+    if (!showProfilePrompt || profilePromptShownRef.current) {
+      if (!showProfilePrompt) {
+        toast.dismiss(PROFILE_PROMPT_TOAST_ID);
+      }
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      toast('Finish your builder profile', {
+        id: PROFILE_PROMPT_TOAST_ID,
+        description: 'Publish to appear on the globe and unlock discovery.',
+        duration: 14000,
+        action: {
+          label: 'Complete profile',
+          onClick: () => {
+            toast.dismiss(PROFILE_PROMPT_TOAST_ID);
+            setOnboardingOpen(true);
+          },
+        },
+        cancel: {
+          label: 'Back home',
+          onClick: () => {
+            toast.dismiss(PROFILE_PROMPT_TOAST_ID);
+            router.push('/');
+          },
+        },
+      });
+    }, 3500);
+
+    profilePromptShownRef.current = true;
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [router, showProfilePrompt]);
+
   return (
     <main className="relative h-screen overflow-hidden bg-[#09090B] text-white">
       <div className="pointer-events-none fixed inset-0 z-0">
@@ -256,8 +331,8 @@ export function GlobeExperience({
 
         {showReadyOverlay && !isGlobeReady && <GlobeLaunchLoader />}
 
-        <div className="fixed top-24 md:top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4 pointer-events-none flex justify-center">
-          <div className="pointer-events-auto w-full flex justify-center">
+        <div className="fixed inset-x-0 top-24 z-40 px-4 pointer-events-none md:top-6 md:px-6">
+          <div className="pointer-events-auto relative mx-auto w-full">
             <ControlBar
               mode={mode}
               setMode={setMode}
@@ -372,9 +447,26 @@ export function GlobeExperience({
           country={selectedCountry}
           mode={mode}
           opportunities={opportunities}
-          countryIntelligence={selectedCountryIntel}
         />
       </motion.div>
+
+      <BuilderOnboardingDialog
+        open={onboardingOpen}
+        onOpenChange={setOnboardingOpen}
+        onFinished={({ status }) => {
+          setProfileStatus(status);
+          router.refresh();
+        }}
+      />
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        expand={false}
+        visibleToasts={1}
+        closeButton={false}
+        offset={{ right: '20px', bottom: '20px' }}
+        mobileOffset={{ left: '12px', right: '12px', bottom: '12px' }}
+      />
     </main>
   );
 }
