@@ -1,97 +1,126 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import {
+  Blocks,
+  BriefcaseBusiness,
+  Brush,
+  Code2,
+  Component,
+  Layers3,
+  Rocket,
+  Smartphone,
+} from 'lucide-react';
+import { FluidDropdown } from '@/components/ui/fluid-dropdown';
 import { cn } from '@/lib/utils';
 import { type ViewMode } from './ModeSwitcher';
 
-export const TECH_FILTERS = ['Rust', 'Solidity', 'Next.js', 'React', 'Mobile', 'Design', 'Full Stack'];
+import Image from 'next/image';
+
+const SvgIcon = (src: string, alt: string, invert: boolean = false) => {
+  const Icon = ({ className }: { className?: string }) => (
+    <div className={cn("relative flex items-center justify-center", className)}>
+      <Image 
+        src={src} 
+        alt={alt} 
+        fill 
+        className={cn("object-contain", invert && "invert")} 
+      />
+    </div>
+  );
+  Icon.displayName = alt;
+  return Icon;
+};
+
+const RustLogo = SvgIcon('/tech-stack/Rust.svg', 'Rust', true);
+const SolidityLogo = SvgIcon('/tech-stack/Solidity.svg', 'Solidity', true);
+const NextJsLogo = SvgIcon('/tech-stack/Next.js.svg', 'Next.js', true);
+const ReactLogo = SvgIcon('/tech-stack/React.svg', 'React', false);
+
+export const TECH_FILTERS = ['Rust', 'Solidity', 'Next.js', 'React', 'Mobile', 'Design', 'Full Stack'] as const;
+
+const FILTER_ITEMS = [
+  { id: 'all', label: 'All builders', value: null, icon: Layers3, color: '#a1a1aa' },
+  { id: 'Rust', label: 'Rust', value: 'Rust', icon: RustLogo, color: '#DEA584' },
+  { id: 'Solidity', label: 'Solidity', value: 'Solidity', icon: SolidityLogo, color: '#8b8b8b' },
+  { id: 'Next.js', label: 'Next.js', value: 'Next.js', icon: NextJsLogo, color: '#f5f5f5' },
+  { id: 'React', label: 'React', value: 'React', icon: ReactLogo, color: '#61dafb' },
+  { id: 'Mobile', label: 'Mobile', value: 'Mobile', icon: Smartphone, color: '#a4c639' },
+  { id: 'Design', label: 'Design', value: 'Design', icon: Brush, color: '#ff69b4' },
+  { id: 'Full Stack', label: 'Full Stack', value: 'Full Stack', icon: BriefcaseBusiness, color: '#e2a336' },
+] as const;
 
 interface ControlBarProps {
-    mode: ViewMode;
-    setMode: (mode: ViewMode) => void;
-    activeFilter: string | null;
-    onFilterChange: (filter: string | null) => void;
+  mode: ViewMode;
+  setMode: (mode: ViewMode) => void;
+  activeFilter: string | null;
+  onFilterChange: (filter: string | null) => void;
 }
 
 export function ControlBar({ mode, setMode, activeFilter, onFilterChange }: ControlBarProps) {
-    return (
-        <div className="flex flex-col items-center gap-3 w-full max-w-[90vw] md:max-w-none">
-            {/* Row 1: Segmented Control - Mode Switcher */}
-            <div className="flex items-center p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl scale-90 md:scale-100 origin-top">
-                <button
-                    onClick={() => setMode('builders')}
-                    className={cn(
-                        "relative px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 overflow-hidden",
-                        mode === 'builders' ? "text-black" : "text-muted-foreground hover:text-white"
-                    )}
-                >
-                    {mode === 'builders' && (
-                        <motion.div
-                            layoutId="mode-pill"
-                            className="absolute inset-0 bg-[#14F195]"
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                    )}
-                    <span className="relative z-10 font-data tracking-wide">BUILDERS</span>
-                </button>
+  const selectedFilter = FILTER_ITEMS.find((item) => item.value === activeFilter) || FILTER_ITEMS[0];
 
-                <button
-                    onClick={() => setMode('bounties')}
-                    className={cn(
-                        "relative px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 overflow-hidden",
-                        mode === 'bounties' ? "text-black" : "text-muted-foreground hover:text-white"
-                    )}
-                >
-                    {mode === 'bounties' && (
-                        <motion.div
-                            layoutId="mode-pill"
-                            className="absolute inset-0 bg-[#FFD700]"
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                    )}
-                    <span className="relative z-10 font-data tracking-wide">OPPORTUNITIES</span>
-                </button>
-            </div>
+  return (
+    <div className="relative flex w-full items-start justify-center">
+      <div className="origin-top scale-90 rounded-full border border-white/10 bg-black/40 p-1 shadow-2xl backdrop-blur-xl md:scale-100">
+        <div className="flex items-center">
+          <button
+            onClick={() => setMode('builders')}
+            className={cn(
+              'relative overflow-hidden rounded-full px-4 py-2 text-xs font-medium transition-all duration-300 md:px-6 md:text-sm',
+              mode === 'builders' ? 'text-black' : 'text-muted-foreground hover:text-white'
+            )}
+          >
+            {mode === 'builders' && (
+              <motion.div
+                layoutId="mode-pill"
+                className="absolute inset-0 bg-[#14F195]"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 font-data tracking-wide">BUILDERS</span>
+          </button>
 
-            {/* Row 2: Filter Pills - Only observable in Builders mode */}
-            <motion.div
-                initial={false}
-                animate={{
-                    height: mode === 'builders' ? 'auto' : 0,
-                    opacity: mode === 'builders' ? 1 : 0,
-                    marginTop: mode === 'builders' ? 0 : -10
-                }}
-                className="overflow-hidden w-full flex justify-center"
-            >
-                <div className="flex items-center gap-2 p-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-x-auto max-w-full no-scrollbar md:justify-center justify-start snap-x">
-                    <button
-                        onClick={() => onFilterChange(null)}
-                        className={cn(
-                            "px-3 py-1.5 rounded-xl text-xs font-medium transition-all font-data shrink-0 snap-center",
-                            activeFilter === null
-                                ? "bg-white/10 text-white shadow-inner"
-                                : "text-muted-foreground hover:text-white hover:bg-white/5"
-                        )}
-                    >
-                        ALL
-                    </button>
-                    <div className="w-[1px] h-4 bg-white/10 mx-1 shrink-0" />
-                    {TECH_FILTERS.map((tech) => (
-                        <button
-                            key={tech}
-                            onClick={() => onFilterChange(activeFilter === tech ? null : tech)}
-                            className={cn(
-                                "px-3 py-1.5 rounded-xl text-xs font-medium transition-all font-data border border-transparent shrink-0 snap-center",
-                                activeFilter === tech
-                                    ? "bg-[#14F195]/20 text-[#14F195] border-[#14F195]/50 shadow-[0_0_15px_rgba(20,241,149,0.3)]"
-                                    : "text-muted-foreground hover:text-white hover:bg-white/5"
-                            )}
-                        >
-                            {tech}
-                        </button>
-                    ))}
-                </div>
-            </motion.div>
+          <button
+            onClick={() => setMode('bounties')}
+            className={cn(
+              'relative overflow-hidden rounded-full px-4 py-2 text-xs font-medium transition-all duration-300 md:px-6 md:text-sm',
+              mode === 'bounties' ? 'text-black' : 'text-muted-foreground hover:text-white'
+            )}
+          >
+            {mode === 'bounties' && (
+              <motion.div
+                layoutId="mode-pill"
+                className="absolute inset-0 bg-[#FFD700]"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10 font-data tracking-wide">OPPORTUNITIES</span>
+          </button>
         </div>
-    );
+      </div>
+
+      <motion.div
+        initial={false}
+        animate={{
+          opacity: mode === 'builders' ? 1 : 0,
+          y: mode === 'builders' ? 0 : -10,
+          pointerEvents: mode === 'builders' ? 'auto' : 'none',
+        }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="absolute right-0 top-0 hidden md:block"
+      >
+        <FluidDropdown
+          items={FILTER_ITEMS.map(({ id, label, icon, color }) => ({ id, label, icon, color }))}
+          selectedId={selectedFilter.id}
+          onSelect={(item) => {
+            const nextFilter = FILTER_ITEMS.find((filter) => filter.id === item.id);
+            onFilterChange(nextFilter?.value ?? null);
+          }}
+          align="right"
+          className="w-[220px]"
+        />
+      </motion.div>
+    </div>
+  );
 }

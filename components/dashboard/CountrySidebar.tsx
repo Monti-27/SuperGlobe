@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,6 +46,38 @@ export function CountrySidebar({
     onCountryClick,
     isLoaded
 }: CountrySidebarProps) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [scrollMetrics, setScrollMetrics] = useState({ top: 0, height: 0, visible: false });
+
+    const updateScrollMetrics = useCallback(() => {
+        const element = scrollRef.current;
+        if (!element) {
+            return;
+        }
+
+        const { scrollTop, scrollHeight, clientHeight } = element;
+        const visible = scrollHeight > clientHeight + 1;
+        const height = visible ? Math.max(28, (clientHeight / scrollHeight) * clientHeight) : 0;
+        const top = visible ? (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - height) : 0;
+
+        setScrollMetrics({ top, height, visible });
+    }, []);
+
+    useEffect(() => {
+        updateScrollMetrics();
+        window.addEventListener('resize', updateScrollMetrics);
+
+        const observer = new ResizeObserver(updateScrollMetrics);
+        if (scrollRef.current) {
+            observer.observe(scrollRef.current);
+        }
+
+        return () => {
+            window.removeEventListener('resize', updateScrollMetrics);
+            observer.disconnect();
+        };
+    }, [stats.length, updateScrollMetrics]);
+
     if (!isLoaded) {
         return (
             <div className="glass rounded-xl p-4 w-64">
@@ -69,14 +102,22 @@ export function CountrySidebar({
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="glass rounded-xl p-4 w-64"
+            className="glass relative rounded-xl p-4 w-64"
         >
-            <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                Superteam Hubs
-            </h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Superteam Hubs
+                </h2>
+                <span className="text-[10px] font-data text-secondary">{stats.length}</span>
+            </div>
 
-            <div className="space-y-1">
-                {stats.slice(0, 10).map((stat, index) => {
+            <div
+                ref={scrollRef}
+                className="country-sidebar-scroll h-[min(34rem,calc(100vh-12rem))] space-y-1 overflow-y-scroll overscroll-contain pr-1"
+                onScroll={updateScrollMetrics}
+                onWheel={(event) => event.stopPropagation()}
+            >
+                {stats.map((stat, index) => {
                     const logoPath = COUNTRY_LOGOS[stat.country] || '/superteam-logos/SUPERTEAM.jpg';
                     const isSelected = selectedCountry === stat.country;
                     const isFocused = focusedCountry === stat.country;
@@ -97,7 +138,6 @@ export function CountrySidebar({
                                     : 'hover:bg-white/[0.04] border border-transparent'
                                 }`}
                         >
-                            {/* Logo */}
                             <div className="relative w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/[0.08] flex-shrink-0">
                                 <Image
                                     src={logoPath}
@@ -108,13 +148,11 @@ export function CountrySidebar({
                                 />
                             </div>
 
-                            {/* Country Name */}
                             <span className={`text-base font-serif flex-1 truncate transition-colors ${isSelected ? 'text-white' : 'text-foreground/70 group-hover:text-foreground'
                                 }`}>
                                 {stat.country}
                             </span>
 
-                            {/* Count */}
                             <motion.span
                                 className={`text-xs font-data tabular-nums ${isSelected ? 'text-primary' : 'text-secondary'
                                     }`}
@@ -126,6 +164,17 @@ export function CountrySidebar({
                     );
                 })}
             </div>
+            {scrollMetrics.visible ? (
+                <div className="pointer-events-none absolute bottom-4 right-2 top-12 w-px rounded-full bg-zinc-700/20">
+                    <div
+                        className="absolute left-0 w-px rounded-full bg-zinc-400/45"
+                        style={{
+                            height: scrollMetrics.height,
+                            transform: `translateY(${scrollMetrics.top}px)`,
+                        }}
+                    />
+                </div>
+            ) : null}
         </motion.div>
     );
 }

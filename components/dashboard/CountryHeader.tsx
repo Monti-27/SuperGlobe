@@ -37,15 +37,14 @@ export function CountryHeader({ country, memberCount, isLoading }: CountryHeader
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="flex items-center justify-between pb-6 border-b border-white/[0.06]"
+            className="flex items-center pb-6 border-b border-zinc-800"
         >
             <div className="flex items-center gap-5">
-                {/* Superteam Logo */}
                 <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
-                    className="relative w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-white/[0.1] shadow-2xl"
+                    className="relative w-14 h-14 rounded-2xl overflow-hidden ring-1 ring-zinc-800 shadow-2xl"
                 >
                     <Image
                         src={logoPath}
@@ -56,7 +55,6 @@ export function CountryHeader({ country, memberCount, isLoading }: CountryHeader
                     />
                 </motion.div>
 
-                {/* Country Info */}
                 <div>
                     <motion.h2
                         initial={{ opacity: 0, x: -10 }}
@@ -83,21 +81,6 @@ export function CountryHeader({ country, memberCount, isLoading }: CountryHeader
                     </motion.p>
                 </div>
             </div>
-
-            {/* Live Badge */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.25, duration: 0.3 }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/10 border border-secondary/20"
-            >
-                <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className="w-1.5 h-1.5 rounded-full bg-secondary"
-                />
-                <span className="text-xs font-data text-secondary">Live</span>
-            </motion.div>
         </motion.div>
     );
 }
