@@ -9,6 +9,41 @@ export interface Member {
     country: string;
     lat: number;
     lng: number;
+    city?: string | null;
+    bio?: string | null;
+    avatarUrl?: string | null;
+    skills?: string[];
+    intents?: string[];
+    socials?: {
+        x?: string;
+        linkedin?: string;
+        github?: string;
+        website?: string;
+    } | null;
+    github?: {
+        username?: string;
+        avatarUrl?: string;
+        profileUrl?: string;
+        heatmapUrl?: string;
+        contributions?: {
+            totalLastYear: number;
+            totalCurrentYear: number;
+            maxDailyCount: number;
+            days: Array<{
+                date: string;
+                count: number;
+                level: number;
+            }>;
+        } | null;
+        topRepos?: Array<{
+            name: string;
+            url: string;
+            description?: string;
+            stars?: number;
+            language?: string;
+        }>;
+    } | null;
+    source?: 'profile' | 'member' | 'csv';
 }
 
 export interface Hub {
@@ -49,6 +84,8 @@ export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; displayN
     'Ukraine': { lat: 48.3794, lng: 31.1656, displayName: 'Ukraine' },
     'Mexico': { lat: 23.6345, lng: -102.5528, displayName: 'Mexico' },
     'USA': { lat: 37.0902, lng: -95.7129, displayName: 'USA' },
+    'Australia': { lat: -25.2744, lng: 133.7751, displayName: 'Australia' },
+    'Israel': { lat: 31.0461, lng: 34.8516, displayName: 'Israel' },
 };
 
 // Hub connections for arcs
@@ -155,6 +192,8 @@ export function getCountryStats(members: Member[]): { country: string; count: nu
         'Ukraine': '🇺🇦',
         'Mexico': '🇲🇽',
         'USA': '🇺🇸',
+        'Australia': '🇦🇺',
+        'Israel': '🇮🇱',
     };
 
     return Array.from(countryMap.entries())
