@@ -45,7 +45,7 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapWidth, setMapWidth] = useState<number | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [mapData, setMapData] = useState<DataItem<number>[]>([]);
+  const [mapData, setMapData] = useState<DataItem<number>[]>([{ country: 'us', value: 0 }]);
   const readyFired = useRef(false);
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
         transition: 'opacity 0.6s ease-out',
       }}
     >
-      {mapWidth && mapData.length > 0 && (
+      {mapWidth && (
         <div
           style={{
             width: `${mapWidth}px`,

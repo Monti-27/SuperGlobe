@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCountryStats } from '@/lib/mock-data';
 import { fetchMemberRoster } from '@/lib/services/member-roster';
 
+export const revalidate = 300; // Cache for 5 minutes
+
 export async function GET() {
   try {
     const roster = await fetchMemberRoster({});
