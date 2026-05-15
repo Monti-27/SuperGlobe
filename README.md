@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Superteam Globe
 
-## Getting Started
+Superteam Globe is a platform that visualizes the global network of Solana builders and opportunities. It provides a real-time, interactive 3D map that lets anyone discover where talent is clustered, view live bounties, and connect directly with verified ecosystem contributors.
 
-First, run the development server:
+![Landing Page](./docs/landing-page.png)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Core Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Interactive 3D Globe
+The core of the application is a fully interactive 3D globe built with WebGL. It plots members and hubs across the world, allowing you to spin, zoom, and explore different regions. The globe has two main views:
+* Builders View: See the density of Solana developers in various countries.
+* Opportunities View: View active bounties, grants, and jobs mapped by region.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+![Globe View](./docs/globe-view.png)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Builder Profiles and Verification
+Every builder gets a dedicated profile page. 
+* Superteam Verified Badges: Recognized contributors have a verified badge to distinguish their profiles.
+* Wallet Authentication: Builders connect and claim their profiles securely using their Solana wallets.
+* Confirmed Information: See the builder's verified location, current status, and tech stack tags like Rust, React, and Smart Contracts.
 
-## Learn More
+### GitHub Integration
+Profiles pull data directly from GitHub to show a developer's true activity.
+* Contribution Heatmap: A familiar green square heatmap displays the builder's commit history for the last year.
+* Top Repositories: Automatically showcases the open source projects the builder contributes to the most.
 
-To learn more about Next.js, take a look at the following resources:
+![Profile Page](./docs/profile-page.png)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Live Opportunities Hub
+The platform pulls data directly from the Superteam API to display live earning opportunities.
+* Filter by bounties, projects, urgent tasks, or verified sponsors.
+* See the total dollar value of open opportunities in any specific country.
+* Apply directly from the dashboard.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+![Opportunities View](./docs/opportunities-view.png)
 
-## Deploy on Vercel
+### Advanced Search and Filtering
+The dashboard features a robust search and filter system.
+* Country Sidebar: Browse a ranked list of countries by builder count, with quick navigation to specific regions.
+* Members Drawer: When you click on a country, a sliding drawer reveals all the builders in that region.
+* Search Bar: Instantly search for builders by name or handle within a selected country.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+![Builder Search](./docs/builder-search.png)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Architecture and Stack
+
+The project is built on a modern React stack optimized for performance and visual fidelity.
+
+* Next.js App Router for routing and server side rendering.
+* Tailwind CSS for styling and layout.
+* Prisma ORM for database management and profile storage.
+* React Three Fiber and Three.js for the 3D globe visualization.
+* Framer Motion for page transitions and micro-interactions.
+* NextAuth for session management and wallet authentication.
+
+## Local Development
+
+To run the project locally, install the dependencies and set up your environment variables.
+
+1. Clone the repository
+2. Install packages using npm install
+3. Copy the example environment file to .env and fill in your database credentials
+4. Run prisma db push to sync the database schema
+5. Start the development server with npm run dev
+
+The application will be available on localhost at port 3000.
