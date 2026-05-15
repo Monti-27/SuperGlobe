@@ -23,6 +23,17 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico?v=3",
     apple: "/apple-icon.png?v=3",
   },
+  openGraph: {
+    images: ["/OG/superglobe-og.png"],
+    title: "Superteam Globe",
+    description: "Global network of Solana builders visualized on an interactive 3D globe",
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/OG/superglobe-og.png"],
+    title: "Superteam Globe",
+    description: "Global network of Solana builders visualized on an interactive 3D globe",
+  },
 };
 
 export default function RootLayout({
