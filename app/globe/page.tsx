@@ -3,7 +3,7 @@ import { getCountryStats } from '@/lib/mock-data';
 import { fetchMemberRoster } from '@/lib/services/member-roster';
 import { fetchLiveOpportunities } from '@/lib/services/superteam-live';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export default async function GlobePage() {
   const [roster, opportunitiesPayload] = await Promise.all([

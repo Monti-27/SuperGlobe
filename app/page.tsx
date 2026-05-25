@@ -15,19 +15,13 @@ import { ParallaxTestimonials } from '@/components/landing/parallax-testimonials
 import { Skiper17 } from '@/components/ui/skiper-ui/skiper17';
 import { GlobeLaunchLoader } from '@/components/ui/globe-launch-loader';
 import { type ProfileStatus } from '@/lib/onboarding';
-import { fetchGrants, fetchHomepageStats, fetchOpportunities } from '@/lib/services/superteam-earn';
 
-const MIN_GLOBE_LAUNCH_MS = 2500;
+const MIN_GLOBE_LAUNCH_MS = 350;
 
 async function warmGlobeRoute() {
   await Promise.allSettled([
     import('@/components/globe/GlobeExperience'),
     import('@/components/globe/BuilderGlobe'),
-    fetch('/data/custom.geo.json', { cache: 'force-cache' }),
-    fetch('/textures/earth-blue-marble.jpg', { cache: 'force-cache' }),
-    fetch('/textures/earth-topology.png', { cache: 'force-cache' }),
-    fetch('/textures/night-sky.png', { cache: 'force-cache' }),
-    fetch('/api/countries/intelligence', { cache: 'force-cache' }),
   ]);
 }
 
@@ -39,11 +33,6 @@ function delay(ms: number) {
 
 export default function Home() {
   const router = useRouter();
-  const [opportunityCount, setOpportunityCount] = useState(0);
-  const [totalGrants, setTotalGrants] = useState(0);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalSponsors, setTotalSponsors] = useState(0);
-  const [isDataLoading, setIsDataLoading] = useState(true);
   const [isLaunchingGlobe, setIsLaunchingGlobe] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [pendingLaunchMode, setPendingLaunchMode] = useState<'default' | 'search'>('default');
@@ -62,7 +51,9 @@ export default function Home() {
         sessionStorage.setItem('open-globe-search', '1');
       }
 
-      await Promise.all([warmGlobeRoute(), delay(MIN_GLOBE_LAUNCH_MS)]);
+      void warmGlobeRoute();
+      await delay(MIN_GLOBE_LAUNCH_MS);
+
       window.requestAnimationFrame(() => {
         router.push('/globe');
       });
@@ -77,49 +68,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadLandingData() {
-      setIsDataLoading(true);
-
-      const [opportunitiesPayload, grantsPayload, homepageStats] = await Promise.all([
-        fetchOpportunities(),
-        fetchGrants({ take: 120 }),
-        fetchHomepageStats(),
-      ]);
-
-      if (!isMounted) {
-        return;
-      }
-
-      setOpportunityCount(opportunitiesPayload.opportunities.length);
-      setTotalGrants(grantsPayload.totals.count);
-      setTotalUsers(homepageStats.totalUsers);
-      setTotalSponsors(homepageStats.totalSponsors);
-      setIsDataLoading(false);
-    }
-
-    loadLandingData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
     router.prefetch('/globe');
-
-    const scheduleWarmup = () => {
-      void warmGlobeRoute();
-    };
-
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(scheduleWarmup, { timeout: 1800 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timeout = globalThis.setTimeout(scheduleWarmup, 900);
-    return () => globalThis.clearTimeout(timeout);
   }, [router]);
 
   const handleGlobeIntent = useCallback(
@@ -200,7 +149,7 @@ export default function Home() {
         <Hero
           onEnterGlobe={handleEnterGlobe}
           onOpenSearch={handleOpenSearch}
-          isLoading={isDataLoading}
+          isLoading={false}
           isLaunching={isLaunchingGlobe}
           entryLayoutId="globe-entry-cta"
         />
@@ -220,7 +169,7 @@ export default function Home() {
 
         <EcosystemStrip />
 
-        <CTASection onEnterGlobe={handleEnterGlobe} isLoading={isDataLoading} isLaunching={isLaunchingGlobe} />
+        <CTASection onEnterGlobe={handleEnterGlobe} isLoading={false} isLaunching={isLaunchingGlobe} />
 
         <Footer />
       </div>

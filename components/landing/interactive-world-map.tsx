@@ -36,9 +36,54 @@ const COUNTRY_TO_ISO: Record<string, string> = {
 
 const SUPPORTED_ISO_CODES = new Set(regions.map((region) => region.code.toLowerCase()));
 
+let cachedMapData: DataItem<number>[] | null = null;
+let cachedMapDataPromise: Promise<DataItem<number>[]> | null = null;
+
 interface InteractiveWorldMapProps {
   onCountryClick?: (countryName: string) => void;
   onReady?: () => void;
+}
+
+async function loadMapData() {
+  if (cachedMapData) {
+    return cachedMapData;
+  }
+
+  if (cachedMapDataPromise) {
+    return cachedMapDataPromise;
+  }
+
+  cachedMapDataPromise = fetch('/api/stats')
+    .then((response) => response.json())
+    .then((data) => {
+      if (!data?.countries) {
+        return [];
+      }
+
+      return data.countries
+        .map((countryRecord: { country: string; count: number }) => {
+          const country = COUNTRY_TO_ISO[countryRecord.country];
+
+          if (!country || !SUPPORTED_ISO_CODES.has(country)) {
+            return null;
+          }
+
+          return {
+            country: country as ISOCode,
+            value: countryRecord.count,
+          };
+        })
+        .filter((item: DataItem<number> | null): item is DataItem<number> => Boolean(item));
+    })
+    .then((items) => {
+      cachedMapData = items;
+      return items;
+    })
+    .finally(() => {
+      cachedMapDataPromise = null;
+    });
+
+  return cachedMapDataPromise;
 }
 
 export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorldMapProps) {
@@ -49,35 +94,21 @@ export function InteractiveWorldMap({ onCountryClick, onReady }: InteractiveWorl
   const readyFired = useRef(false);
 
   useEffect(() => {
-    async function fetchMapData() {
-      try {
-        const response = await fetch('/api/stats');
-        const data = await response.json();
-        
-        if (data && data.countries) {
-          const formattedData: DataItem<number>[] = data.countries
-            .map((countryRecord: { country: string; count: number }) => {
-              const country = COUNTRY_TO_ISO[countryRecord.country];
+    let cancelled = false;
 
-              if (!country || !SUPPORTED_ISO_CODES.has(country)) {
-                return null;
-              }
-
-              return {
-                country: country as ISOCode,
-                value: countryRecord.count,
-              };
-            })
-            .filter((item: DataItem<number> | null): item is DataItem<number> => Boolean(item));
-            
-          setMapData(formattedData);
+    loadMapData()
+      .then((items) => {
+        if (!cancelled && items.length > 0) {
+          setMapData(items);
         }
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error('Failed to load map data', error);
-      }
-    }
-    
-    fetchMapData();
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
