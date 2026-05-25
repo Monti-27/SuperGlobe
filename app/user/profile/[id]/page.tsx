@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { fetchMemberById } from '@/lib/services/member-roster';
 import { ProfileLayout } from '@/components/profile/ProfileLayout';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
-import { getCurrentUserContext } from '@/lib/auth-session';
+import { getCurrentViewerWallet } from '@/lib/auth-session';
 import { notFound } from 'next/navigation';
 
 interface ProfilePageProps {
@@ -13,23 +13,17 @@ interface ProfilePageProps {
 
 export async function generateMetadata({ params }: ProfilePageProps) {
   const resolvedParams = await params;
-  const member = await fetchMemberById(decodeURIComponent(resolvedParams.id));
-  
-  if (!member) {
-    return {
-      title: 'Builder Not Found | SuperGlobe',
-    };
-  }
+  const id = decodeURIComponent(resolvedParams.id);
+  const readable = id.startsWith('profile-') ? 'Builder Profile' : id;
 
   return {
-    title: `${member.name} | SuperGlobe Builder Profile`,
-    description: member.bio || `View ${member.name}'s builder profile on SuperGlobe.`,
+    title: `${readable} | SuperGlobe`,
+    description: 'View this builder profile on SuperGlobe.',
   };
 }
 
 async function ProfileData({ id }: { id: string }) {
-  const currentUser = await getCurrentUserContext();
-  const viewerWallet = currentUser?.wallet || null;
+  const viewerWallet = await getCurrentViewerWallet();
   const member = await fetchMemberById(id, { viewerWallet });
 
   if (!member) {

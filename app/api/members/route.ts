@@ -3,6 +3,8 @@ import { getWalletActivityBatch } from '@/lib/services/onchain-activity';
 import type { OnchainActivity } from '@/lib/services/onchain-activity';
 import { fetchMemberRoster } from '@/lib/services/member-roster';
 
+export const revalidate = 120;
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
@@ -63,6 +65,10 @@ export async function GET(request: NextRequest) {
       meta: {
         source: roster.source,
         fallbackReason: roster.fallbackReason || null,
+      },
+    }, {
+      headers: {
+        'Cache-Control': withActivity ? 'no-store' : 's-maxage=120, stale-while-revalidate=300',
       },
     });
   } catch (error) {

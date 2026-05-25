@@ -163,8 +163,8 @@ export function MembersDrawer({
           country: countryName,
           page: String(pageNum),
           limit: String(COUNTRY_CACHE_LIMIT),
-          withActivity: normalizedSearch ? 'false' : 'true',
-          sort: normalizedSearch ? 'name' : 'activity',
+          withActivity: 'false',
+          sort: 'name',
         });
 
         if (normalizedSearch) {

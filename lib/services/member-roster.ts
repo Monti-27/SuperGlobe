@@ -86,10 +86,18 @@ interface CsvCachePayload {
   members: MemberRosterRecord[];
 }
 
+interface ProfileCachePayload {
+  expiresAt: number;
+  profiles: MemberRosterRecord[];
+}
+
 const CSV_CACHE_TTL_MS = 5 * 60 * 1000;
+const PROFILE_CACHE_TTL_MS = 60 * 1000;
 
 const globalCache = globalThis as unknown as {
   memberRosterCsvCache?: CsvCachePayload;
+  memberRosterProfileCache?: ProfileCachePayload;
+  memberRosterProfileCachePromise?: Promise<MemberRosterRecord[]>;
 };
 
 function csvFilePath() {
@@ -293,6 +301,80 @@ async function loadPublicProfilesFromDb(): Promise<MemberRosterRecord[]> {
   return mappedProfiles;
 }
 
+function refreshPublicProfilesInBackground() {
+  if (globalCache.memberRosterProfileCachePromise) {
+    return;
+  }
+
+  globalCache.memberRosterProfileCachePromise = loadPublicProfilesFromDb()
+    .then((profiles) => {
+      globalCache.memberRosterProfileCache = {
+        profiles,
+        expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+      };
+      return profiles;
+    })
+    .catch(() => [])
+    .finally(() => {
+      globalCache.memberRosterProfileCachePromise = undefined;
+    });
+}
+
+async function loadPublicProfilesForRoster(): Promise<MemberRosterRecord[]> {
+  const now = Date.now();
+  const cached = globalCache.memberRosterProfileCache;
+  if (cached && cached.expiresAt > now) {
+    return cached.profiles;
+  }
+
+  refreshPublicProfilesInBackground();
+  return cached?.profiles || [];
+}
+
+async function markSuperteamStatus(record: MemberRosterRecord): Promise<MemberRosterRecord> {
+  if (!record.wallet) {
+    return { ...record, isSuperteam: false };
+  }
+
+  const dbRecord = await prisma.member.findUnique({
+    where: { wallet: record.wallet },
+    select: { wallet: true },
+  }).catch(() => null);
+
+  if (dbRecord) {
+    return { ...record, isSuperteam: true };
+  }
+
+  const csvRecords = await loadRosterFromCsv().catch(() => []);
+  return { ...record, isSuperteam: csvRecords.some((item) => item.wallet === record.wallet) };
+}
+
+async function loadPublicProfileByIdOrWallet(idOrWallet: string): Promise<MemberRosterRecord | null> {
+  const profileId = idOrWallet.startsWith("profile-") ? idOrWallet.slice("profile-".length) : idOrWallet;
+  const profile = await prisma.builderProfile.findFirst({
+    where: {
+      isPublished: true,
+      visibility: "PUBLIC",
+      OR: [
+        { id: profileId },
+        {
+          user: {
+            wallet: idOrWallet,
+          },
+        },
+      ],
+    },
+    include: rosterProfileInclude,
+  }).catch(() => null);
+
+  if (!profile) {
+    return null;
+  }
+
+  const record = profileToRosterRecord(profile);
+  return record ? markSuperteamStatus(record) : null;
+}
+
 async function loadOwnerProfileById(idOrWallet: string, viewerWallet?: string | null) {
   if (!viewerWallet) {
     return null;
@@ -317,39 +399,33 @@ async function loadOwnerProfileById(idOrWallet: string, viewerWallet?: string | 
   if (profiles[0]) {
     const record = profileToRosterRecord(profiles[0]);
     if (record) {
-      const legacy = await loadLegacyMembersFromDb({ search: record.wallet }).catch(() => []);
-      const csv = await loadRosterFromCsv().catch(() => []);
-      const isSuperteam = legacy.some(l => l.wallet === record.wallet) || csv.some(c => c.wallet === record.wallet);
-      return { ...record, isSuperteam };
+      return markSuperteamStatus(record);
     }
   }
   return null;
 }
 
-async function loadLegacyMembersFromDb(filters: MemberRosterFilters): Promise<MemberRosterRecord[]> {
-  const search = (filters.search || "").trim();
-  const where: Record<string, unknown> = {};
+async function loadLegacyMemberByIdOrWallet(idOrWallet: string): Promise<MemberRosterRecord | null> {
+  const member = await prisma.member.findFirst({
+    where: {
+      OR: [
+        { id: idOrWallet },
+        { wallet: idOrWallet },
+      ],
+    },
+  }).catch(() => null);
 
-  if (filters.country) {
-    where.country = filters.country;
+  if (member) {
+    return {
+      ...member,
+      source: "member",
+      isSuperteam: true,
+    };
   }
 
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { wallet: { contains: search, mode: "insensitive" } },
-    ];
-  }
-
-  const members = await prisma.member.findMany({
-    where,
-    orderBy: { name: "asc" },
-  });
-
-  return members.map((member) => ({
-    ...member,
-    source: "member" as const,
-  }));
+  const csvRecords = await loadRosterFromCsv();
+  const csvRecord = csvRecords.find(m => m.id === idOrWallet || m.wallet === idOrWallet);
+  return csvRecord ? { ...csvRecord, isSuperteam: true } : null;
 }
 
 function mergeRosterRecords(records: MemberRosterRecord[]) {
@@ -374,9 +450,11 @@ export async function fetchMemberRoster(filters: MemberRosterFilters): Promise<M
   const take = filters.take ? Math.max(1, filters.take) : undefined;
 
   try {
-    const profiles = await loadPublicProfilesFromDb().catch(() => []);
-    const legacy = await loadLegacyMembersFromDb(filters).catch(() => []);
-    const combined = mergeRosterRecords([...profiles, ...legacy]);
+    const [profiles, csvRecords] = await Promise.all([
+      loadPublicProfilesForRoster(),
+      loadRosterFromCsv(),
+    ]);
+    const combined = mergeRosterRecords([...profiles, ...csvRecords]);
     const filtered = applyRosterFilters(combined, { country: filters.country, search: filters.search }).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
@@ -391,7 +469,7 @@ export async function fetchMemberRoster(filters: MemberRosterFilters): Promise<M
     return {
       members: paged,
       total: filtered.length,
-      source: "prisma",
+      source: profiles.length > 0 ? "prisma" : "csv",
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown prisma error";
@@ -426,7 +504,7 @@ export async function fetchMemberWalletCountrySnapshot(): Promise<MemberWalletCo
         country: record.country,
         wallet: record.wallet,
       })),
-      source: "prisma",
+      source: roster.source,
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown prisma error";
@@ -454,18 +532,12 @@ export async function fetchMemberById(
       return ownerProfile;
     }
 
-    const profiles = await loadPublicProfilesFromDb().catch(() => []);
-    const legacy = await loadLegacyMembersFromDb({}).catch(() => []);
-    const combined = mergeRosterRecords([...profiles, ...legacy]);
-
-    const member = combined.find(m => m.id === idOrWallet || m.wallet === idOrWallet);
-
-    if (!member) {
-      const csvRecords = await loadRosterFromCsv();
-      return csvRecords.find(m => m.id === idOrWallet || m.wallet === idOrWallet) || null;
+    const publicProfile = await loadPublicProfileByIdOrWallet(idOrWallet).catch(() => null);
+    if (publicProfile) {
+      return publicProfile;
     }
 
-    return member;
+    return loadLegacyMemberByIdOrWallet(idOrWallet);
   } catch (error) {
     console.error("Error fetching member by ID:", error);
     return null;
@@ -485,6 +557,21 @@ export async function findRosterClaimByWallet(wallet: string): Promise<RosterCla
   const normalizedWallet = wallet.trim();
   if (!normalizedWallet) {
     return null;
+  }
+
+  const dbRecord = await prisma.member.findUnique({
+    where: { wallet: normalizedWallet },
+  }).catch(() => null);
+
+  if (dbRecord) {
+    return {
+      title: dbRecord.name,
+      wallet: dbRecord.wallet,
+      country: dbRecord.country,
+      lat: dbRecord.lat,
+      lng: dbRecord.lng,
+      xHandle: null,
+    };
   }
 
   const records = await loadRosterFromCsv();

@@ -88,3 +88,35 @@ export async function getCurrentUserContext() {
     return null;
   }
 }
+
+export async function getCurrentViewerWallet() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!token) {
+      return null;
+    }
+
+    const session = await prisma.session.findUnique({
+      where: {
+        tokenHash: hashToken(token),
+      },
+      select: {
+        expiresAt: true,
+        user: {
+          select: {
+            wallet: true,
+          },
+        },
+      },
+    });
+
+    if (!session || session.expiresAt <= new Date()) {
+      return null;
+    }
+
+    return session.user.wallet;
+  } catch {
+    return null;
+  }
+}
