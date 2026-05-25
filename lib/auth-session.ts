@@ -120,3 +120,53 @@ export async function getCurrentViewerWallet() {
     return null;
   }
 }
+
+export async function getCurrentUserStatusContext() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!token) {
+      return null;
+    }
+
+    const session = await prisma.session.findUnique({
+      where: {
+        tokenHash: hashToken(token),
+      },
+      select: {
+        expiresAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            wallet: true,
+            profile: {
+              select: {
+                displayName: true,
+                country: true,
+                city: true,
+                visibility: true,
+                isPublished: true,
+              },
+            },
+            onboardingState: {
+              select: {
+                currentStep: true,
+                skippedAt: true,
+                completedAt: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!session || session.expiresAt <= new Date()) {
+      return null;
+    }
+
+    return session.user;
+  } catch {
+    return null;
+  }
+}

@@ -77,6 +77,8 @@ export default function Home() {
         return;
       }
 
+      setIsLaunchingGlobe(true);
+
       try {
         const status = await fetchProfileStatus();
 
@@ -91,6 +93,7 @@ export default function Home() {
         console.error('Failed to resolve profile status for globe entry:', error);
       }
 
+      setIsLaunchingGlobe(false);
       setPendingLaunchMode(mode);
       setIsOnboardingOpen(true);
     },

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUserContext } from '@/lib/auth-session';
+import { getCurrentUserStatusContext } from '@/lib/auth-session';
 import { computeProfileStatus } from '@/lib/services/profile-onboarding';
 import { findRosterClaimByWallet } from '@/lib/services/member-roster';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await getCurrentUserContext();
+  const user = await getCurrentUserStatusContext();
   const status = computeProfileStatus(user);
   const claim = user?.wallet ? await findRosterClaimByWallet(user.wallet) : null;
 
