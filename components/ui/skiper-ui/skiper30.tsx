@@ -29,10 +29,11 @@ const Skiper30 = () => {
   });
 
   const { height } = dimension;
+  // Adjusted parallax speeds to ensure all columns have noticeable and smooth movement
   const y = useTransform(scrollYProgress, [0, 1], [0, height * 2]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * 3.3]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.25]);
-  const y4 = useTransform(scrollYProgress, [0, 1], [0, height * 3]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * 2.8]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.8]);
+  const y4 = useTransform(scrollYProgress, [0, 1], [0, height * 2.5]);
 
   useEffect(() => {
     const resize = () => {
@@ -115,7 +116,7 @@ type ColumnProps = {
 const Column = ({ images, y }: ColumnProps) => {
   return (
     <motion.div
-      className="relative -top-[45%] flex h-full w-1/4 min-w-[250px] flex-col gap-[2vw] first:top-[-45%] [&:nth-child(2)]:top-[-95%] [&:nth-child(3)]:top-[-45%] [&:nth-child(4)]:top-[-75%]"
+      className="relative -top-[45%] flex h-full w-1/4 min-w-[150px] flex-col gap-[2vw] first:top-[-45%] [&:nth-child(2)]:top-[-95%] [&:nth-child(3)]:top-[-45%] [&:nth-child(4)]:top-[-75%]"
       style={{ y }}
     >
       {images.map((src, i) => (
