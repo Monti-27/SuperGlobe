@@ -12,7 +12,7 @@ import { EcosystemStrip } from '@/components/landing/ecosystem-strip';
 import { CTASection } from '@/components/landing/cta-section';
 import { Footer } from '@/components/landing/footer';
 import { ParallaxTestimonials } from '@/components/landing/parallax-testimonials';
-import { Skiper17 } from '@/components/ui/skiper-ui/skiper17';
+import { Skiper30 } from '@/components/ui/skiper-ui/skiper30';
 import { GlobeLaunchLoader } from '@/components/ui/globe-launch-loader';
 import { type ProfileStatus } from '@/lib/onboarding';
 
@@ -164,7 +164,7 @@ export default function Home() {
 
         <FeaturesGrid />
 
-        <Skiper17 />
+        <Skiper30 />
 
         <HowItWorks />
 

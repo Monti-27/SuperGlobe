@@ -1,23 +1,22 @@
 "use client";
 
 import { motion, MotionValue, useScroll, useTransform } from "framer-motion";
-import Lenis from "lenis";
-import { useEffect, useRef, useState } from "react";
+import { ReactLenis } from "lenis/react";
+import { useRef, useState, useEffect } from "react";
 
 const images = [
-  "/images/lummi/img15.png",
-  "/images/lummi/img21.png",
-  "/images/lummi/img3.png",
-  "/images/lummi/img4.png",
-  "/images/lummi/img5.png",
-  "/images/lummi/img6.png",
-  "/images/lummi/img7.png",
-  "/images/lummi/img8.png",
-  "/images/lummi/img24.png",
-  "/images/lummi/img10.png",
-  "/images/lummi/img11.png",
-  "/images/lummi/img12.png",
-  "/images/lummi/img13.png",
+  "/images/76f12a8b-e1f3-48d7-ad3a-1ca0ab558370_5760x3840.jpg",
+  "/images/G2jrVKTXAAAp7bU.jpeg",
+  "/images/G2lSEI3XgAA08sF.jpeg",
+  "/images/G2qwbY0XwAA7I98.jpeg",
+  "/images/G3nhywGX0AA6A65.jpeg",
+  "/images/G40iWRbWYAA1iRC.jpeg",
+  "/images/G45crCnXIAECqMw.jpeg",
+  "/images/G5PWFRJa0AAr_oU.jpeg",
+  "/images/G78qnagagAQg5oA.jpeg",
+  "/images/GTUD81VWUAAWQhJ.jpeg",
+  "/images/GTfaw5daQAAqAfz.jpeg",
+  "/images/Gm46P4yakAA6m8c.jpeg",
 ];
 
 const Skiper30 = () => {
@@ -36,19 +35,11 @@ const Skiper30 = () => {
   const y4 = useTransform(scrollYProgress, [0, 1], [0, height * 3]);
 
   useEffect(() => {
-    const lenis = new Lenis();
-
-    const raf = (time: number) => {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    };
-
     const resize = () => {
       setDimension({ width: window.innerWidth, height: window.innerHeight });
     };
 
     window.addEventListener("resize", resize);
-    requestAnimationFrame(raf);
     resize();
 
     return () => {
@@ -57,32 +48,29 @@ const Skiper30 = () => {
   }, []);
 
   return (
-    <main className="w-full bg-[#eee] text-black">
-      <div className="font-geist flex h-screen items-center justify-center gap-2">
-        <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black">
-          <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-white after:to-black after:content-['']">
-            scroll down to see
-          </span>
+    <ReactLenis root>
+      <section className="relative w-full text-white pt-[15vh] pb-[15vh]">
+        <div className="absolute left-1/2 top-24 grid w-full -translate-x-1/2 content-start justify-items-center gap-2 text-center pointer-events-none z-30 mix-blend-difference">
+          <p className="text-[10px] font-data uppercase tracking-[0.2em] text-[#E2A336] mb-3">
+            Gallery
+          </p>
+          <h2 className="text-4xl md:text-6xl font-serif tracking-tight text-white mb-2">
+            Superteam in
+            <span className="text-white/50 italic ml-2 transition-opacity">action</span>
+          </h2>
         </div>
-      </div>
 
-      <div
-        ref={gallery}
-        className="relative box-border flex h-[175vh] gap-[2vw] overflow-hidden bg-white p-[2vw]"
-      >
-        <Column images={[images[0], images[1], images[2]]} y={y} />
-        <Column images={[images[3], images[4], images[5]]} y={y2} />
-        <Column images={[images[6], images[7], images[8]]} y={y3} />
-        <Column images={[images[6], images[7], images[8]]} y={y4} />
-      </div>
-      <div className="font-geist relative flex h-screen items-center justify-center gap-2">
-        <div className="absolute left-1/2 top-[10%] grid -translate-x-1/2 content-start justify-items-center gap-6 text-center text-black">
-          <span className="relative max-w-[12ch] text-xs uppercase leading-tight opacity-40 after:absolute after:left-1/2 after:top-full after:h-16 after:w-px after:bg-gradient-to-b after:from-white after:to-black after:content-['']">
-            scroll Up to see
-          </span>
+        <div
+          ref={gallery}
+          className="relative box-border flex h-[150vh] gap-[2vw] overflow-hidden p-[2vw]"
+        >
+          <Column images={[images[0], images[1], images[2]]} y={y} />
+          <Column images={[images[3], images[4], images[5]]} y={y2} />
+          <Column images={[images[6], images[7], images[8]]} y={y3} />
+          <Column images={[images[9], images[10], images[11]]} y={y4} />
         </div>
-      </div>
-    </main>
+      </section>
+    </ReactLenis>
   );
 };
 
@@ -98,11 +86,12 @@ const Column = ({ images, y }: ColumnProps) => {
       style={{ y }}
     >
       {images.map((src, i) => (
-        <div key={i} className="relative h-full w-full overflow-hidden">
+        <div key={i} className="relative h-full w-full overflow-hidden rounded-[1rem] bg-white/5">
           <img
             src={`${src}`}
-            alt="image"
-            className="pointer-events-none object-cover"
+            alt="Superteam in action"
+            className="pointer-events-none object-cover h-full w-full"
+            loading="lazy"
           />
         </div>
       ))}
@@ -111,21 +100,3 @@ const Column = ({ images, y }: ColumnProps) => {
 };
 
 export { Skiper30 };
-
-/**
- * Skiper 30 Parallax_002 — React + framer motion + lenis
- * Inspired by and adapted from https://www.siena.film/films/my-project-x
- * We respect the original creators. This is an inspired rebuild with our own taste and does not claim any ownership.
- * These animations aren’t associated with the siena.film . They’re independent recreations meant to study interaction design
- *
- * License & Usage:
- * - Free to use and modify in both personal and commercial projects.
- * - Attribution to Skiper UI is required when using the free version.
- * - No attribution required with Skiper UI Pro.
- *
- * Feedback and contributions are welcome.
- *
- * Author: @gurvinder-singh02
- * Website: https://gxuri.in
- * Twitter: https://x.com/Gur__vi
- */
