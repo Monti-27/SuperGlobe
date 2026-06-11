@@ -61,15 +61,16 @@ const Skiper30 = () => {
           <Column images={[images[9], images[10], images[11]]} y={y4} />
         </div>
 
-        {/* The gallery is completely uncovered and 100% visible */}
-        
-        {/* Cutout Mask Overlay (NATURE effect) */}
-        {/* Screen blend mode: white background washes out the gallery, black text becomes completely transparent to reveal the sharp images inside! */}
-        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-screen bg-white/85">
-          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center">
-            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-black text-center font-bold">
+        {/* Cutout Mask Overlay (Flawless Dark Mode) */}
+        {/* Multiply blend mode: black/50 background dims the gallery by 50%, white text becomes completely transparent to reveal the sharp images inside! */}
+        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-multiply">
+          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center bg-black/50">
+            <h2 
+              className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-white text-center font-bold"
+              style={{ filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.4))' }}
+            >
               Superteam<br/>
-              <span className="italic text-black font-light pr-4">in action</span>
+              <span className="italic text-white font-light pr-4">in action</span>
             </h2>
           </div>
         </div>
