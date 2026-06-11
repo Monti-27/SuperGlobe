@@ -63,24 +63,14 @@ const Skiper30 = () => {
 
         {/* The gallery is completely uncovered and 100% visible */}
         
-        {/* Glassy Text Overlay */}
-        <div className="absolute inset-0 pointer-events-none z-30 flex flex-col items-center justify-center">
-          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center mix-blend-overlay">
-            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-white text-center drop-shadow-2xl">
-              Superteam<br/>
-              <span className="italic text-white">in action</span>
-            </h2>
-          </div>
-        </div>
-
-        {/* Normal text overlay (Gallery tag) */}
-        <div className="absolute inset-0 pointer-events-none z-40">
+        {/* Cutout Mask Overlay (NATURE effect) */}
+        {/* Screen blend mode: white background washes out the gallery, black text becomes completely transparent to reveal the sharp images inside! */}
+        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-screen bg-white/85">
           <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center">
-            <div className="-mt-[18rem] md:-mt-[22rem]">
-              <p className="text-[12px] font-data uppercase tracking-[0.2em] text-[#E2A336]">
-                Gallery
-              </p>
-            </div>
+            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-black text-center font-bold">
+              Superteam<br/>
+              <span className="italic text-black font-light pr-4">in action</span>
+            </h2>
           </div>
         </div>
       </section>
