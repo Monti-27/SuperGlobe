@@ -61,17 +61,20 @@ const Skiper30 = () => {
           <Column images={[images[9], images[10], images[11]]} y={y4} />
         </div>
 
-        {/* Cutout Mask Overlay */}
-        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-multiply">
-          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center bg-[#1a1a1a]">
-            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-white text-center">
+        {/* 1. Darken the entire gallery so the outside is dimmed */}
+        <div className="absolute inset-0 pointer-events-none z-20 bg-black/80" />
+
+        {/* 2. Color-dodge mask: black background does nothing, #ccc text multiplies brightness by 5x, restoring the dimmed image perfectly inside the text! */}
+        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-color-dodge">
+          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center bg-black">
+            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-[#ccc] text-center">
               Superteam<br/>
-              <span className="italic text-white/90">in action</span>
+              <span className="italic text-[#ccc]">in action</span>
             </h2>
           </div>
         </div>
 
-        {/* Normal text overlay */}
+        {/* Normal text overlay (Gallery tag) */}
         <div className="absolute inset-0 pointer-events-none z-40">
           <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center">
             <div className="-mt-[18rem] md:-mt-[22rem]">
