@@ -61,17 +61,45 @@ const Skiper30 = () => {
           <Column images={[images[9], images[10], images[11]]} y={y4} />
         </div>
 
-        {/* Cutout Mask Overlay (Flawless Dark Mode) */}
-        {/* Multiply blend mode: black/50 background dims the gallery by 50%, white text becomes completely transparent to reveal the sharp images inside! */}
-        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-multiply">
-          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center bg-black/50">
-            <h2 
-              className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-white text-center font-bold"
-              style={{ filter: 'drop-shadow(0 0 40px rgba(255,255,255,0.4))' }}
-            >
-              Superteam<br/>
-              <span className="italic text-white font-light pr-4">in action</span>
-            </h2>
+        {/* SVG Cutout Mask (True Frosted Glass) */}
+        {/* We blur the outside and punch a literal hole through the glass using an SVG mask, providing perfect contrast (sharp vs blur) without darkening the images inside! */}
+        <div className="absolute inset-0 pointer-events-none z-30">
+          <div className="sticky top-0 h-screen w-full">
+            <svg className="absolute w-0 h-0">
+              <defs>
+                <mask id="text-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <text 
+                    x="50%" 
+                    y="42%" 
+                    textAnchor="middle" 
+                    dominantBaseline="middle"
+                    fill="black" 
+                    className="text-7xl md:text-[10rem] font-serif font-bold tracking-tight"
+                  >
+                    Superteam
+                  </text>
+                  <text 
+                    x="50%" 
+                    y="56%" 
+                    textAnchor="middle" 
+                    dominantBaseline="middle"
+                    fill="black" 
+                    className="text-7xl md:text-[10rem] font-serif italic font-light tracking-tight"
+                  >
+                    in action
+                  </text>
+                </mask>
+              </defs>
+            </svg>
+            
+            <div 
+              className="w-full h-full bg-black/40 backdrop-blur-md"
+              style={{
+                WebkitMaskImage: 'url(#text-mask)',
+                maskImage: 'url(#text-mask)',
+              }}
+            />
           </div>
         </div>
       </section>
