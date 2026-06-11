@@ -49,25 +49,37 @@ const Skiper30 = () => {
 
   return (
     <ReactLenis root>
-      <section className="relative w-full text-white pt-[15vh] pb-[15vh]">
-        <div className="absolute left-1/2 top-24 grid w-full -translate-x-1/2 content-start justify-items-center gap-2 text-center pointer-events-none z-30 mix-blend-difference">
-          <p className="text-[10px] font-data uppercase tracking-[0.2em] text-[#E2A336] mb-3">
-            Gallery
-          </p>
-          <h2 className="text-4xl md:text-6xl font-serif tracking-tight text-white mb-2">
-            Superteam in
-            <span className="text-white/50 italic ml-2 transition-opacity">action</span>
-          </h2>
-        </div>
-
+      <section className="relative w-full bg-[#0c0c0c] pb-[15vh]">
+        {/* Gallery */}
         <div
           ref={gallery}
-          className="relative box-border flex h-[150vh] gap-[2vw] overflow-hidden p-[2vw]"
+          className="relative box-border flex h-[200vh] gap-[2vw] overflow-hidden p-[2vw]"
         >
           <Column images={[images[0], images[1], images[2]]} y={y} />
           <Column images={[images[3], images[4], images[5]]} y={y2} />
           <Column images={[images[6], images[7], images[8]]} y={y3} />
           <Column images={[images[9], images[10], images[11]]} y={y4} />
+        </div>
+
+        {/* Cutout Mask Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-30 mix-blend-multiply">
+          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center bg-[#1a1a1a]">
+            <h2 className="text-7xl md:text-[10rem] leading-[0.9] font-serif tracking-tight text-white text-center">
+              Superteam<br/>
+              <span className="italic text-white/90">in action</span>
+            </h2>
+          </div>
+        </div>
+
+        {/* Normal text overlay */}
+        <div className="absolute inset-0 pointer-events-none z-40">
+          <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center">
+            <div className="-mt-[18rem] md:-mt-[22rem]">
+              <p className="text-[12px] font-data uppercase tracking-[0.2em] text-[#E2A336]">
+                Gallery
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </ReactLenis>
