@@ -92,7 +92,7 @@ const COUNTRY_POLYGON_ALTITUDE = 0.005;
 const SELECTED_POLYGON_ALTITUDE = 0.0064;
 const POLYGON_TRANSITION_DURATION_MS = 260;
 const GLOBE_TEXTURE_URL = '/textures/earth-blue-marble.jpg';
-const GLOBE_BUMP_URL = '';
+const GLOBE_BUMP_URL = '/textures/earth-topology.png';
 const GLOBE_BACKGROUND_URL = '/textures/night-sky.png';
 
 let cachedCountries: GeoFeature[] | null = null;
@@ -408,32 +408,32 @@ function BuilderGlobeComponent({
   const palette = useMemo(() => {
     if (mode === 'bounties') {
       return {
-        idleFill: 'rgba(0, 0, 0, 0.12)',
-        activeFill: 'rgba(40, 30, 5, 0.18)',
-        hoverFillIdle: 'rgba(255, 255, 255, 0.10)',
-        hoverFillActive: 'rgba(255, 215, 0, 0.22)',
-        selectedFill: 'rgba(255, 215, 0, 0.38)',
-        idleStroke: 'rgba(255,255,255,0.40)',
-        activeStroke: 'rgba(255,215,0,0.45)',
-        hoverStrokeIdle: 'rgba(255,255,255,0.30)',
-        hoverStrokeActive: 'rgba(255,215,0,0.78)',
+        idleFill: 'rgba(12, 11, 8, 0.82)',
+        activeFill: 'rgba(58, 40, 8, 0.88)',
+        hoverFillIdle: 'rgba(255, 255, 255, 0.12)',
+        hoverFillActive: 'rgba(255, 215, 0, 0.2)',
+        selectedFill: 'rgba(255, 215, 0, 0.42)',
+        idleStroke: 'rgba(255,255,255,0.08)',
+        activeStroke: 'rgba(255,215,0,0.16)',
+        hoverStrokeIdle: 'rgba(255,255,255,0.26)',
+        hoverStrokeActive: 'rgba(255,215,0,0.74)',
         selectedStroke: 'rgba(255,215,0,0.98)',
-        sideColor: 'rgba(0,0,0,0.12)',
+        sideColor: 'rgba(0,0,0,0.18)',
       };
     }
 
     return {
-      idleFill: 'rgba(0, 0, 0, 0.12)',
-      activeFill: 'rgba(0, 0, 0, 0.15)',
-      hoverFillIdle: 'rgba(255, 255, 255, 0.10)',
-      hoverFillActive: 'rgba(111, 216, 255, 0.22)',
-      selectedFill: 'rgba(111, 216, 255, 0.32)',
-      idleStroke: 'rgba(255,255,255,0.40)',
-      activeStroke: 'rgba(255,255,255,0.40)',
-      hoverStrokeIdle: 'rgba(255,255,255,0.28)',
-      hoverStrokeActive: 'rgba(111,216,255,0.82)',
+      idleFill: 'rgba(10, 12, 19, 0.82)',
+      activeFill: 'rgba(10, 12, 19, 0.82)',
+      hoverFillIdle: 'rgba(255, 255, 255, 0.08)',
+      hoverFillActive: 'rgba(111, 216, 255, 0.18)',
+      selectedFill: 'rgba(111, 216, 255, 0.34)',
+      idleStroke: 'rgba(255,255,255,0.08)',
+      activeStroke: 'rgba(255,255,255,0.08)',
+      hoverStrokeIdle: 'rgba(255,255,255,0.24)',
+      hoverStrokeActive: 'rgba(111,216,255,0.78)',
       selectedStroke: 'rgba(255,255,255,0.98)',
-      sideColor: 'rgba(0,0,0,0.10)',
+      sideColor: 'rgba(0,0,0,0.18)',
     };
   }, [mode]);
 
